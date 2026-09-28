@@ -1,33 +1,27 @@
 :root{
-  --bg-1:#050d1a; --bg-2:#0a1c33; --bg-grid:rgba(90,166,255,0.05);
-  --surface:rgba(14,35,58,0.62); --surface-strong:rgba(18,44,71,0.85); --surface-solid:#0e2440;
-  --border:rgba(140,197,255,0.14); --border-strong:rgba(140,197,255,0.28);
-  --ink:#eaf4ff; --ink-soft:#a9c4dc; --muted:#6e8ca6;
-  --accent:#3b8bff; --accent-2:#33d6ee; --accent-soft:rgba(59,139,255,0.16);
-  --success:#3fcb82; --warning:#f2b33d; --danger:#f0736b;
-  --sil-fill:rgba(59,139,255,0.10); --sil-line:rgba(90,166,255,0.6);
-  --shadow:0 24px 70px -32px rgba(0,0,0,0.7);
+  --bg-1:#eaf3fc; --bg-2:#dcebfb;
+  --surface:rgba(255,255,255,0.68); --surface-strong:rgba(255,255,255,0.9); --surface-solid:#ffffff;
+  --border:rgba(15,58,92,0.13); --border-strong:rgba(15,58,92,0.22);
+  --ink:#0b2545; --ink-soft:#4f6b85; --muted:#7e93a8;
+  --accent:#0b63ce; --accent-2:#1fbad6; --accent-soft:rgba(11,99,206,0.10);
+  --success:#188a4a; --warning:#b36a00; --danger:#c23434;
+  --sil-fill:rgba(11,99,206,0.08); --sil-line:rgba(11,99,206,0.5);
+  --shadow:0 24px 56px -30px rgba(11,37,69,0.28);
   --font-display:'Outfit','Segoe UI',system-ui,sans-serif;
   --font-body:'Inter','Segoe UI',system-ui,sans-serif;
   --font-mono:'Space Mono','SFMono-Regular',Consolas,monospace;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; }
 body{
   background:
-    radial-gradient(circle at 20% -10%, rgba(59,139,255,0.16), transparent 45%),
-    radial-gradient(circle at 85% 10%, rgba(51,214,238,0.10), transparent 40%),
+    radial-gradient(circle at 18% -12%, rgba(31,186,214,0.16), transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(11,99,206,0.12), transparent 45%),
     linear-gradient(180deg, var(--bg-1), var(--bg-2) 55%, var(--bg-1));
   color:var(--ink); font-family:var(--font-body); font-size:14.5px;
   padding:24px 20px 56px; position:relative;
-}
-.scanlines{
-  position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.35;
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 27px, var(--bg-grid) 28px),
-    repeating-linear-gradient(90deg, transparent, transparent 27px, var(--bg-grid) 28px);
 }
 .top, .sub, .scenarios, .controls-row, .note, .stepper, .flow, .predictions, .action-banner{ position:relative; z-index:1; }
 
@@ -42,11 +36,15 @@ p{ margin:0; }
 .top{ display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; margin-bottom:10px; }
 .brand{ display:flex; align-items:center; gap:14px; }
 .brand-mark{
-  width:44px; height:44px; border-radius:13px; background:linear-gradient(150deg, var(--accent), var(--accent-2));
-  display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 0 26px var(--accent-soft); flex:none;
+  width:46px; height:46px; border-radius:14px; background:linear-gradient(150deg, #ffffff, #eaf4fd);
+  border:1px solid var(--border-strong);
+  display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 8px 20px -10px rgba(11,37,69,0.35); flex:none;
 }
-.brand-mark .eye{ width:6px; height:6px; border-radius:50%; background:#04101f; }
-.eyebrow{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-2); margin-bottom:2px; }
+.brand-mark .eye{
+  width:8px; height:8px; border-radius:50%; background:var(--accent-2);
+  box-shadow:0 0 8px var(--accent-2), 0 0 2px #fff;
+}
+.eyebrow{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:2px; }
 .top h1{ font-size:clamp(24px,3.4vw,30px); font-weight:800; letter-spacing:-.01em; }
 
 .model-status{
@@ -116,7 +114,7 @@ p{ margin:0; }
 .panel-head{ display:flex; align-items:center; gap:10px; }
 .panel-head .icon{
   width:28px; height:28px; border-radius:9px; display:flex; align-items:center; justify-content:center;
-  background:var(--accent-soft); color:var(--accent-2); font-family:var(--font-mono); font-size:12px; font-weight:700; flex:none;
+  background:var(--accent-soft); color:var(--accent); font-family:var(--font-mono); font-size:12px; font-weight:700; flex:none;
 }
 .panel-title{ font-family:var(--font-display); font-weight:700; font-size:14.5px; }
 .panel-kicker{ font-size:11px; color:var(--muted); font-family:var(--font-mono); }

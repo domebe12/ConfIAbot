@@ -341,8 +341,8 @@
     var w = canvas.clientWidth, h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
 
-    var accent = "rgba(59,139,255,1)";
-    var accent2 = "rgba(51,214,238,1)";
+    var accent = "rgba(11,99,206,1)";
+    var accent2 = "rgba(31,186,214,1)";
 
     // ambient idle pulse
     var idle = 0.5 + 0.5 * Math.sin(t * 0.0016);
@@ -353,7 +353,7 @@
       var pb = nodeProgress(e.b, t);
       var activeGlow = Math.max(pa * (1 - pb), pa > 0 && pb > 0 ? 0.5 : 0) ;
       var alpha = e.base * (0.5 + idle * 0.5) + activeGlow * 0.7;
-      ctx.strokeStyle = "rgba(120,180,255," + Math.min(alpha, 0.9).toFixed(3) + ")";
+      ctx.strokeStyle = "rgba(11,99,206," + Math.min(alpha, 0.65).toFixed(3) + ")";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(e.a.x, e.a.y);
@@ -372,8 +372,8 @@
       ctx.beginPath();
       ctx.arc(n.x, n.y, r + 5, 0, Math.PI * 2);
       var grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r + 5);
-      grad.addColorStop(0, "rgba(51,214,238," + Math.min(glow, 0.9).toFixed(3) + ")");
-      grad.addColorStop(1, "rgba(51,214,238,0)");
+      grad.addColorStop(0, "rgba(31,186,214," + Math.min(glow, 0.55).toFixed(3) + ")");
+      grad.addColorStop(1, "rgba(31,186,214,0)");
       ctx.fillStyle = grad;
       ctx.fill();
 
@@ -387,7 +387,7 @@
 
     // labels for input/output layers — centered above each node, clamped inside the canvas
     ctx.font = "9px 'Space Mono', monospace";
-    ctx.fillStyle = "rgba(169,196,220,0.9)";
+    ctx.fillStyle = "rgba(79,107,133,0.9)";
     ctx.textBaseline = "alphabetic";
     ctx.textAlign = "center";
 
