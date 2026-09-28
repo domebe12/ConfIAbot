@@ -142,6 +142,9 @@
   var actionText = document.getElementById("actionText");
   var terminal = document.getElementById("terminal");
   var latencyEl = document.getElementById("latency");
+  var panelChat = document.getElementById("panelChat");
+  var panelCore = document.getElementById("panelCore");
+  var panelProfile = document.getElementById("panelProfile");
 
   var toneColor = { good: "var(--success)", warn: "var(--warning)", bad: "var(--danger)" };
 
@@ -218,12 +221,19 @@
     next();
   }
 
+  function updateSpotlight(stage) {
+    panelChat.classList.toggle("spotlight", stage === "0" || stage === "1");
+    panelCore.classList.toggle("spotlight", stage === "2" || stage === "3");
+    panelProfile.classList.toggle("spotlight", stage === "4" || stage === "5");
+  }
+
   function setStage(i) {
     var stage = stages[i];
     flow.setAttribute("data-stage", stage);
     conn1.classList.toggle("active", stage === "2");
     conn2.classList.toggle("active", stage === "4");
     updateStepper(stage);
+    updateSpotlight(stage);
 
     if (stage === "0") { resetRiskWidth(); clearTerminal(); }
     if (stage === "2") { netFire(); playLog(scenarios[scnIndex].log); }
@@ -385,6 +395,30 @@
       ctx.globalAlpha = 1;
     });
 
+    // traveling sparks — data moving from a node to the next layer, right after it fires
+    if (fireStart !== null) {
+      netEdges.forEach(function (e) {
+        var pa = nodeProgress(e.a, t);
+        if (pa < 1) return;
+        var elapsed = t - fireStart;
+        var delayA = e.a.layer * 300 + e.a.index * 22;
+        var travelT = elapsed - (delayA + 380);
+        var travelDur = 260;
+        if (travelT < 0 || travelT > travelDur) return;
+        var frac = travelT / travelDur;
+        var x = e.a.x + (e.b.x - e.a.x) * frac;
+        var y = e.a.y + (e.b.y - e.a.y) * frac;
+        var sparkAlpha = Math.sin(frac * Math.PI);
+        ctx.beginPath();
+        ctx.arc(x, y, 1.9, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(31,186,214," + (0.9 * sparkAlpha).toFixed(3) + ")";
+        ctx.shadowColor = "rgba(31,186,214,0.95)";
+        ctx.shadowBlur = 7;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+    }
+
     // labels for input/output layers — centered above each node, clamped inside the canvas
     ctx.font = "9px 'Space Mono', monospace";
     ctx.fillStyle = "rgba(79,107,133,0.9)";
@@ -428,5 +462,69 @@
     setTimeout(function () { start(true); }, 900);
   } else {
     setStage(5);
+  }
+
+  /* ----------------------------- Ambient background particles ----------------------------- */
+  var bgCanvas = document.getElementById("bgCanvas");
+  if (bgCanvas) {
+    var bgCtx = bgCanvas.getContext("2d");
+    var bgDpr = Math.min(window.devicePixelRatio || 1, 2);
+    var bgParticles = [];
+
+    function resizeBg() {
+      bgCanvas.width = window.innerWidth * bgDpr;
+      bgCanvas.height = window.innerHeight * bgDpr;
+      bgCtx.setTransform(bgDpr, 0, 0, bgDpr, 0, 0);
+    }
+
+    function initBgParticles() {
+      var count = Math.min(55, Math.floor((window.innerWidth * window.innerHeight) / 26000));
+      bgParticles = [];
+      for (var i = 0; i < count; i++) {
+        bgParticles.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          vx: (Math.random() - 0.5) * 0.12,
+          vy: (Math.random() - 0.5) * 0.12,
+          r: 1 + Math.random() * 1.4
+        });
+      }
+    }
+
+    function drawBg() {
+      var w = window.innerWidth, h = window.innerHeight;
+      bgCtx.clearRect(0, 0, w, h);
+      bgParticles.forEach(function (p) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+      });
+      for (var i = 0; i < bgParticles.length; i++) {
+        for (var j = i + 1; j < bgParticles.length; j++) {
+          var a = bgParticles[i], b = bgParticles[j];
+          var dx = a.x - b.x, dy = a.y - b.y;
+          var d2 = dx * dx + dy * dy;
+          if (d2 < 16900) {
+            var alpha = (1 - Math.sqrt(d2) / 130) * 0.10;
+            bgCtx.strokeStyle = "rgba(11,99,206," + alpha.toFixed(3) + ")";
+            bgCtx.lineWidth = 1;
+            bgCtx.beginPath(); bgCtx.moveTo(a.x, a.y); bgCtx.lineTo(b.x, b.y); bgCtx.stroke();
+          }
+        }
+      }
+      bgParticles.forEach(function (p) {
+        bgCtx.beginPath();
+        bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        bgCtx.fillStyle = "rgba(31,186,214,0.32)";
+        bgCtx.fill();
+      });
+    }
+
+    function bgLoop() { drawBg(); requestAnimationFrame(bgLoop); }
+
+    resizeBg();
+    initBgParticles();
+    if (!reduced) { requestAnimationFrame(bgLoop); } else { drawBg(); }
+    window.addEventListener("resize", function () { resizeBg(); initBgParticles(); });
   }
 })();
