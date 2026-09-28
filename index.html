@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ConfIAbot — Prototipo en vivo</title>
+<meta name="description" content="Prototipo interactivo: el flujo conversacional de ConfIAbot y su motor de machine learning actuando en tiempo real.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B63CE'/%3E%3Ccircle cx='11' cy='15' r='2.6' fill='%2333D6EE'/%3E%3Ccircle cx='21' cy='15' r='2.6' fill='%2333D6EE'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="scanlines" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="brand">
+    <div class="brand-mark">
+      <span class="eye"></span><span class="eye"></span>
+    </div>
+    <div>
+      <div class="eyebrow">Prototipo en vivo · Shark Tank Confiamed</div>
+      <h1>ConfIAbot</h1>
+    </div>
+  </div>
+  <div class="model-status">
+    <span class="led"></span> Motor activo
+    <span class="sep">·</span>
+    <span id="latency">lat. 184ms</span>
+  </div>
+</header>
+
+<p class="sub">Elige una consulta real y observa cómo el mensaje se convierte en dato, el modelo lo procesa, y el perfil del afiliado se actualiza con predicciones.</p>
+
+<nav class="scenarios" id="scenarios" aria-label="Escenarios de ejemplo">
+  <button class="chip-scn active" data-scn="0" type="button">Red de prestadores</button>
+  <button class="chip-scn" data-scn="1" type="button">Reembolso</button>
+  <button class="chip-scn" data-scn="2" type="button">Consulta de receta</button>
+  <button class="chip-scn" data-scn="3" type="button">Autorizaciones</button>
+</nav>
+
+<div class="controls-row">
+  <button class="btn" id="btnToggle" type="button">Pausar reproducción automática</button>
+  <button class="btn primary" id="btnReplay" type="button">Repetir este escenario</button>
+</div>
+
+<p class="note">Datos y conversaciones de ejemplo, con fines de demostración — no corresponden a un afiliado real.</p>
+
+<div class="stepper" id="stepper">
+  <div class="step" data-step="0"><span class="dot"></span><span class="label">Interacción</span></div>
+  <div class="step-line"></div>
+  <div class="step" data-step="1"><span class="dot"></span><span class="label">Captura</span></div>
+  <div class="step-line"></div>
+  <div class="step" data-step="2"><span class="dot"></span><span class="label">Modelo IA</span></div>
+  <div class="step-line"></div>
+  <div class="step" data-step="3"><span class="dot"></span><span class="label">Perfil 360°</span></div>
+  <div class="step-line"></div>
+  <div class="step" data-step="4"><span class="dot"></span><span class="label">Predicción</span></div>
+  <div class="step-line"></div>
+  <div class="step" data-step="5"><span class="dot"></span><span class="label">Acción</span></div>
+</div>
+
+<main class="flow" id="flow" data-stage="0">
+
+  <section class="panel panel-chat">
+    <div class="panel-head">
+      <div class="icon">01</div>
+      <div>
+        <div class="panel-title">Asistente conversacional</div>
+        <div class="panel-kicker" id="channelLabel">Portal · App · Bróker · Prestador</div>
+      </div>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="bubble user" id="userMsg">…</div>
+      <div class="typing" id="typing"><span></span><span></span><span></span></div>
+      <div class="bubble bot bot-msg" id="botMsg">…</div>
+    </div>
+    <div class="chat-input"><span>Escribe tu mensaje…</span><div class="chat-send"></div></div>
+  </section>
+
+  <div class="connector" id="conn1"><span class="pulse-dot"></span><span class="pulse-dot"></span><span class="pulse-dot"></span></div>
+
+  <section class="panel panel-core">
+    <div class="panel-head">
+      <div class="icon">02</div>
+      <div>
+        <div class="panel-title">Núcleo Conf-IA</div>
+        <div class="panel-kicker">Red neuronal · en vivo</div>
+      </div>
+    </div>
+    <div class="net-wrap">
+      <canvas id="netCanvas"></canvas>
+      <div class="net-corner tl"></div><div class="net-corner tr"></div>
+      <div class="net-corner bl"></div><div class="net-corner br"></div>
+    </div>
+    <div class="terminal" id="terminal" aria-live="polite"></div>
+  </section>
+
+  <div class="connector" id="conn2"><span class="pulse-dot"></span><span class="pulse-dot"></span><span class="pulse-dot"></span></div>
+
+  <section class="panel panel-profile">
+    <div class="panel-head">
+      <div class="icon">03</div>
+      <div>
+        <div class="panel-title">Perfil 360°</div>
+        <div class="panel-kicker" id="affName">Carlos M. · Ced. •••2412</div>
+      </div>
+      <span class="status-pill">Activo</span>
+    </div>
+
+    <div class="sil-box">
+      <div class="sil-piece sil-torso"></div>
+      <div class="sil-piece sil-arm-l"></div>
+      <div class="sil-piece sil-arm-r"></div>
+      <div class="sil-piece sil-leg-l"></div>
+      <div class="sil-piece sil-leg-r"></div>
+      <div class="sil-piece sil-head"></div>
+      <div class="scan-sweep"></div>
+      <div class="marker m-head"></div>
+      <div class="marker m-chest"></div>
+      <div class="marker m-torso"></div>
+      <div class="marker m-leg"></div>
+    </div>
+
+    <div class="chips-grid" id="chipsGrid"></div>
+
+    <div class="risk-block">
+      <div class="risk-row"><span id="riskLabel">Riesgo</span><span class="val" id="riskVal">—</span></div>
+      <div class="risk-track"><div class="risk-fill" id="riskFill"></div></div>
+    </div>
+  </section>
+
+</main>
+
+<section class="predictions" id="predictions"></section>
+
+<footer class="action-banner">
+  <div>
+    <div class="a-label">Acción recomendada</div>
+    <div class="a-text" id="actionText">…</div>
+  </div>
+  <span class="action-tag">Ejecutado por ConfIAbot</span>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
