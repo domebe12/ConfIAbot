@@ -96,24 +96,9 @@
         <h2>Procesamiento</h2>
         <p>El modelo recorre el historial del afiliado y razona igual que lo haría un analista — solo que en milisegundos.</p>
       </div>
-      <div class="tree-wrap">
-        <svg id="treeSvg" viewBox="0 0 900 340" class="tree-svg">
-          <!-- edges -->
-          <line id="e-root-a" class="edge" x1="450" y1="40" x2="230" y2="140"/>
-          <line id="e-root-b" class="edge" x1="450" y1="40" x2="670" y2="140"/>
-          <line id="e-a-a1" class="edge" x1="230" y1="160" x2="120" y2="250"/>
-          <line id="e-a-a2" class="edge" x1="230" y1="160" x2="340" y2="250"/>
-          <line id="e-b-b1" class="edge" x1="670" y1="160" x2="560" y2="250"/>
-          <line id="e-b-b2" class="edge" x1="670" y1="160" x2="780" y2="250"/>
-          <!-- nodes -->
-          <g class="node" id="n-root"><rect x="360" y="10" width="180" height="34" rx="10"/><text x="450" y="32">Mensaje + historial</text></g>
-          <g class="node" id="n-a"><rect x="140" y="128" width="180" height="34" rx="10"/><text x="230" y="150">Señales de salud</text></g>
-          <g class="node" id="n-b"><rect x="580" y="128" width="180" height="34" rx="10"/><text x="670" y="150">Señales de satisfacción</text></g>
-          <g class="leaf" id="leaf-salud-alto"><rect x="30" y="252" width="180" height="52" rx="12"/><text x="120" y="273">≥3 consultas</text><text x="120" y="291">relacionadas · 6 meses</text></g>
-          <g class="leaf" id="leaf-salud-bajo"><rect x="250" y="252" width="180" height="52" rx="12"/><text x="340" y="273">Consulta puntual</text><text x="340" y="291">sin patrón de riesgo</text></g>
-          <g class="leaf" id="leaf-queja-alto"><rect x="470" y="252" width="180" height="52" rx="12"/><text x="560" y="273">≥3 quejas</text><text x="560" y="291">últimos 2 meses</text></g>
-          <g class="leaf" id="leaf-queja-bajo"><rect x="690" y="252" width="180" height="52" rx="12"/><text x="780" y="273">Interacción</text><text x="780" y="291">informativa normal</text></g>
-        </svg>
+      <div class="net-wrap">
+        <div class="net-tag">RED NEURONAL · 34 NODOS · 5 CAPAS</div>
+        <canvas id="netCanvas"></canvas>
       </div>
       <div class="reasoning-box" id="reasoningBox">
         <span class="reasoning-ic">🧠</span>

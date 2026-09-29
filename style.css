@@ -75,7 +75,7 @@ main#app{ position:relative; z-index:1; }
   padding:10px 9px 14px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; width:100%; }
 .device-notch{ width:34%; max-width:90px; height:7px; background:#0c1e33; border-radius:999px; margin-inline:auto; }
 .device-screen{ background:var(--surface-solid); border-radius:20px; border:1px solid var(--border);
-  display:flex; flex-direction:column; height:520px; overflow:hidden; }
+  display:flex; flex-direction:column; height:min(520px, 68vh); min-height:280px; overflow:hidden; }
 .device-home{ width:30%; max-width:80px; height:4px; background:var(--border-strong); border-radius:999px; margin:2px auto 0; }
 .app-bar{ display:flex; align-items:center; gap:9px; padding:12px; border-bottom:1px solid var(--border); flex:none; }
 .app-bar-text{ flex:1; min-width:0; }
@@ -121,21 +121,13 @@ main#app{ position:relative; z-index:1; }
 .tag-state.ok{ background:rgba(24,138,74,0.12); color:var(--success); }
 .tag-state.pending{ background:rgba(179,106,0,0.12); color:var(--warning); }
 
-/* ---------- Procesamiento tree ---------- */
-.tree-wrap{ background:var(--surface-solid); border:1px solid var(--border); border-radius:18px; padding:10px; box-shadow:var(--shadow); margin-bottom:18px; overflow-x:auto; }
-.tree-svg{ width:100%; min-width:640px; height:auto; display:block; }
-.edge{ stroke:var(--border-strong); stroke-width:2; transition:stroke .5s ease, stroke-width .5s ease; }
-.edge.active{ stroke:var(--accent-2); stroke-width:3; }
-.node rect{ fill:var(--surface-solid); stroke:var(--border-strong); stroke-width:1.5; transition:all .5s ease; }
-.node text{ font-family:'Inter',sans-serif; font-size:12px; font-weight:700; fill:var(--ink); text-anchor:middle; dominant-baseline:middle; }
-.node.active rect{ fill:var(--accent-soft); stroke:var(--accent); }
-.leaf rect{ fill:#f3f8fd; stroke:var(--border-strong); stroke-width:1.5; transition:all .5s ease; }
-.leaf text{ font-family:'Inter',sans-serif; font-size:10.5px; fill:var(--ink-soft); text-anchor:middle; }
-.leaf text:first-of-type{ font-weight:700; fill:var(--ink); }
-.leaf.win rect{ fill:rgba(24,138,74,0.12); stroke:var(--success); stroke-width:2.5; }
-.leaf.win text{ fill:var(--success); }
-.leaf.win.danger rect{ fill:rgba(194,52,52,0.1); stroke:var(--danger); }
-.leaf.win.danger text{ fill:var(--danger); }
+/* ---------- Procesamiento: red neuronal ---------- */
+.net-wrap{ position:relative; background:var(--surface-solid); border:1px solid var(--border); border-radius:18px;
+  padding:14px 10px 10px; box-shadow:var(--shadow); margin-bottom:18px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.net-tag{ position:absolute; top:10px; left:50%; transform:translateX(-50%); font-family:var(--font-mono); font-size:9px;
+  letter-spacing:.08em; color:var(--muted); background:rgba(255,255,255,0.85); padding:2px 10px; border-radius:999px; z-index:2; }
+#netCanvas{ display:block; width:100%; min-width:780px; height:320px; }
+@media (max-width:640px){ #netCanvas{ height:280px; } }
 .reasoning-box{ display:flex; gap:12px; align-items:flex-start; background:linear-gradient(120deg,var(--accent-soft),rgba(31,186,214,0.08));
   border:1px solid rgba(11,99,206,0.22); border-radius:16px; padding:16px 18px; margin-bottom:18px; }
 .reasoning-ic{ font-size:22px; }
@@ -173,7 +165,23 @@ main#app{ position:relative; z-index:1; }
   .top h1{ font-size:16px; }
   .tabs-nav{ width:100%; overflow-x:auto; flex-wrap:nowrap; }
   .client-stats{ grid-template-columns:1fr; }
-  .device-screen{ height:460px; }
+}
+
+@media (max-width:900px) and (max-height:480px){
+  /* phones in landscape: short viewport, keep the chat usable without scrolling the page */
+  .view{ padding:14px 16px 20px; min-height:auto; }
+  .device-screen{ height:min(320px, 70vh); min-height:220px; }
+  .app-bar{ padding:7px 12px; }
+  .chat-body{ padding:8px 14px; gap:6px; }
+  .hero-mascot{ width:110px; }
+  .hero-title{ font-size:20px; margin-bottom:4px; }
+  .hero-sub{ font-size:13px; margin-bottom:14px; }
+  .hero-hint{ display:none; }
+}
+
+@media (min-width:1100px){
+  .view-inner{ max-width:1080px; }
+  .client-card{ padding:30px 34px; }
 }
 
 @media (prefers-reduced-motion: reduce){
