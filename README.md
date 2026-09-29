@@ -1,31 +1,37 @@
-# ConfIAbot — Prototipo en vivo
+# ConfIAbot — App interactiva
 
-Prototipo interactivo para la iniciativa **Conf-IA-Bot** (Shark Tank Confiamed).
+App de demostración para la iniciativa **Conf-IA-Bot** (Shark Tank Confiamed).
 
-Muestra el flujo completo: un afiliado escribe una consulta, el mensaje se convierte en datos, una red neuronal animada representa el modelo de machine learning procesándolos en tiempo real, y el perfil 360° del afiliado se actualiza con predicciones y una acción recomendada.
+A diferencia de una demo que se reproduce sola, aquí el usuario controla el recorrido: abre el chat, escribe una pregunta con sus propias palabras, y navega él mismo por las pantallas que muestran qué pasa "detrás de escena".
 
 ## Ver la demo
 
-Publicado con GitHub Pages: `https://<usuario>.github.io/confiabot-demo/`
+Publicado con GitHub Pages: `https://domebe12.github.io/ConfIAbot/`
 
-## Qué incluye
+## Flujo
 
-- **Asistente conversacional** — mock de chat con un mensaje real por escenario.
-- **Núcleo Conf-IA** — una red neuronal dibujada en `<canvas>` que se activa (capas, nodos y conexiones se iluminan) cada vez que llega un mensaje, más una consola de log estilo terminal.
-- **Perfil 360°** — silueta del afiliado con marcadores tipo HUD, datos capturados y un medidor de riesgo.
-- **Predicciones y acción recomendada.**
-- Tres escenarios de ejemplo (cobertura, reembolso negado, riesgo de fuga) seleccionables, con reproducción automática o manual.
+1. **Inicio** — pantalla de bienvenida con la mascota de ConfIAbot.
+2. **Chat** — input de texto real. Un motor simple de intenciones (por palabras clave) detecta de qué trata el mensaje (cita, reembolso, receta, autorización, o señales especiales como menciones de glucosa/diabetes o quejas repetidas) y responde.
+3. **Almacenamiento** — al enviar un mensaje aparece una notificación; al abrirla, se ve la nueva fila **escribiéndose en tiempo real**, celda por celda, como un RPA guardando el dato en la base.
+4. **Procesamiento** — un árbol de decisión animado muestra el razonamiento del modelo: qué rama se activa y por qué, con una explicación en texto plano.
+5. **Cliente interno** — perfil del afiliado (foto real, no figuras dibujadas) con estadísticas y alertas que se van acumulando según lo que el usuario fue preguntando (ej. riesgo de diabetes, riesgo de no renovación por quejas).
+
+Las pestañas de Almacenamiento / Procesamiento / Cliente interno se desbloquean después del primer mensaje y quedan disponibles para navegar libremente.
 
 ## Estructura
 
 ```
-index.html   — estructura de la página
-style.css    — tema visual (glassmorphism oscuro, HUD)
-script.js    — lógica de escenarios, máquina de estados y red neuronal en canvas
+index.html   — las 5 vistas de la app
+style.css    — tema visual (glassmorphism claro, marca Confiamed)
+script.js    — motor de intenciones, máquina de vistas, animaciones
+assets/      — mascota real (recortada del material de marca)
+storyboard/  — versión anterior: recorrido animado de 12 pasos idéntico al storyboard de referencia (se conserva por separado)
 ```
 
-Sin dependencias ni build: son tres archivos estáticos. Para verlo localmente, abre `index.html` en el navegador o sirve la carpeta con cualquier servidor estático.
+Sin dependencias ni build: son archivos estáticos. Para verlo localmente, sirve la carpeta con cualquier servidor estático (`python3 -m http.server`).
+
+La foto del perfil usa un servicio externo de fotos de stock (randomuser.me) como placeholder; si no carga, cae automáticamente a un avatar con iniciales.
 
 ## Nota
 
-Todos los datos de afiliados y conversaciones son de ejemplo, con fines de demostración.
+Todos los datos y conversaciones son de ejemplo, con fines de demostración — no corresponden a un afiliado real.
