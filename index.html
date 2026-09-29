@@ -55,7 +55,7 @@
 
   <!-- ===================== INICIO (portal) ===================== -->
   <section class="view" data-view="inicio">
-    <div class="view-inner">
+    <div class="view-inner wide-inner">
       <div class="portal-mock">
         <aside class="portal-side">
           <div class="portal-logo"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestro prioridad</small></div></div>
@@ -65,13 +65,30 @@
             <li>✅ Autorizaciones</li>
             <li>💳 Reembolsos</li>
             <li>🩺 Citas médicas</li>
-            <li>⋯ Más</li>
+            <li>📁 Documentos</li>
+            <li>⚙️ Configuración</li>
           </ul>
+          <div class="portal-side-foot">
+            <img class="portal-user-ph" src="assets/client-photo.png" alt="">
+            <div><b>María Fernández</b><small>Plan Oro</small></div>
+          </div>
         </aside>
         <div class="portal-main">
+          <div class="portal-topbar">
+            <div class="portal-search"><span class="search-ic">🔍</span><input type="text" placeholder="Buscar en el portal…" disabled></div>
+            <div class="portal-actions">
+              <span class="portal-bell">🔔<span class="portal-bell-dot"></span></span>
+              <img class="portal-avatar" src="assets/client-photo.png" alt="María Fernández López">
+            </div>
+          </div>
           <div class="portal-greet">
             <h2>Hola, María</h2>
             <p>¿En qué podemos ayudarte hoy?</p>
+          </div>
+          <div class="portal-quickstats">
+            <div class="qstat"><b>Plan Oro</b><small>Tu cobertura activa</small></div>
+            <div class="qstat"><b>6 años</b><small>Como afiliada</small></div>
+            <div class="qstat"><b>0</b><small>Solicitudes pendientes</small></div>
           </div>
           <div class="portal-cards">
             <div class="portal-card"><span class="pc-ic">✅</span><b>Autorizaciones</b><small>Solicita y da seguimiento</small></div>
@@ -91,23 +108,50 @@
 
   <!-- ===================== CHAT ===================== -->
   <section class="view" data-view="chat">
-    <div class="view-inner narrow-inner">
-      <div class="device standalone">
-        <div class="device-notch"></div>
-        <div class="device-screen">
-          <div class="app-bar">
-            <img class="mascot-img mascot-img--xs" src="assets/mascot-avatar.png" alt="ConfIA BOT">
-            <div class="app-bar-text"><div class="app-name">ConfIA BOT</div><div class="app-status" id="chatStatus">🟢 En línea</div></div>
+    <div class="view-inner wide-inner">
+      <div class="chat-workspace">
+        <aside class="chat-side">
+          <div class="chat-side-card">
+            <img class="context-photo" src="assets/client-photo.png" alt="María Fernández López">
+            <div>
+              <b>María Fernández López</b>
+              <small>Plan Oro · Antigüedad 6 años</small>
+            </div>
           </div>
-          <div class="chat-body" id="chatBody">
-            <div class="bubble bot">¡Hola! Soy ConfIA BOT 👋 Escribe tu pregunta como se la harías a una persona — por ejemplo, sobre una cita, un reembolso o una receta.</div>
+          <div class="chat-tips">
+            <b>Prueba a preguntar sobre…</b>
+            <ul>
+              <li>🩺 Una cita médica</li>
+              <li>💳 El estado de un reembolso</li>
+              <li>💊 Una receta o medicamento</li>
+              <li>✅ Una autorización</li>
+            </ul>
           </div>
-          <form class="chat-input" id="chatForm">
-            <input id="chatInput" type="text" autocomplete="off" placeholder="Escribe tu mensaje…" maxlength="180">
-            <button class="chat-send" type="submit" aria-label="Enviar"></button>
-          </form>
+          <div class="chat-tips">
+            <b>💡 Casos especiales</b>
+            <ul>
+              <li>Menciona tu glucosa varias veces</li>
+              <li>Repite una queja del servicio</li>
+            </ul>
+          </div>
+        </aside>
+        <div class="device standalone">
+          <div class="device-notch"></div>
+          <div class="device-screen">
+            <div class="app-bar">
+              <img class="mascot-img mascot-img--xs" src="assets/mascot-avatar.png" alt="ConfIA BOT">
+              <div class="app-bar-text"><div class="app-name">ConfIA BOT</div><div class="app-status" id="chatStatus">🟢 En línea</div></div>
+            </div>
+            <div class="chat-body" id="chatBody">
+              <div class="bubble bot">¡Hola! Soy ConfIA BOT 👋 Escribe tu pregunta como se la harías a una persona — por ejemplo, sobre una cita, un reembolso o una receta.</div>
+            </div>
+            <form class="chat-input" id="chatForm">
+              <input id="chatInput" type="text" autocomplete="off" placeholder="Escribe tu mensaje…" maxlength="180">
+              <button class="chat-send" type="submit" aria-label="Enviar"></button>
+            </form>
+          </div>
+          <div class="device-home"></div>
         </div>
-        <div class="device-home"></div>
       </div>
     </div>
   </section>
