@@ -8,22 +8,16 @@
       test: (t) => /gluco|az[uú]car|diabet/.test(t),
       label: 'Riesgo de salud (glucosa)',
       botReply: 'Veo que mencionas temas de glucosa. Ya registré esto junto a tu historial reciente — cuentas con varias consultas relacionadas. Te recomiendo agendar un control con endocrinología cuanto antes.',
-      reasoning: 'Se detectan varias consultas relacionadas a glucosa en los últimos 6 meses, combinadas con la edad del afiliado (45 años). El modelo activa la rama de "Señales de salud" y concluye riesgo ALTO de diabetes tipo 2.',
+      reasoning: 'Se detectan consultas relacionadas a glucosa, combinadas con la edad del afiliado. El modelo activa la rama de "Señales de salud".',
       treePath: 'salud-alto',
-      alert: { key: 'diabetes', icon: '⚠️', title: 'Riesgo de diabetes tipo 2',
-        text: '4 consultas relacionadas a glucosa en los últimos 6 meses, combinadas con la edad del afiliado.',
-        plan: ['Agendar control con endocrinología', 'Enviar material educativo sobre alimentación', 'Activar seguimiento trimestral de glucosa'] },
     },
     {
       id: 'queja',
       test: (t) => /quej|reclam|molest|insatisf|mal servicio|p[eé]sim|no.{0,3}resuelv/.test(t),
       label: 'Riesgo de satisfacción (queja)',
       botReply: 'Lamento que hayas tenido inconvenientes. Registré tu comentario — veo que no es la primera vez, así que lo estoy escalando a nuestro equipo de retención para un seguimiento personalizado.',
-      reasoning: 'Se detectan quejas repetidas en los últimos 2 meses. El modelo activa la rama de "Señales de satisfacción" y concluye riesgo ALTO de no renovación.',
+      reasoning: 'Se detectan quejas repetidas. El modelo activa la rama de "Señales de satisfacción".',
       treePath: 'queja-alto',
-      alert: { key: 'renovacion', icon: '⚠️', title: 'Riesgo de no renovación',
-        text: '3 quejas registradas en los últimos 2 meses — patrón de insatisfacción recurrente.',
-        plan: ['Contacto proactivo de un asesor en 24h', 'Ofrecer compensación o mejora de plan', 'Marcar cuenta para seguimiento prioritario'] },
     },
     {
       id: 'cita', test: (t) => /cita|turno|agendar|consulta m[eé]dica/.test(t),
@@ -64,9 +58,93 @@
     const t = text.toLowerCase();
     return INTENTS.find((i) => i.test(t)) || DEFAULT_INTENT;
   }
+  const BRANCH = {
+    glucosa: 'diabetes', cita: 'diabetes', receta: 'diabetes',
+    queja: 'no_renovacion', reembolso: 'no_renovacion', autorizacion: 'no_renovacion', general: 'no_renovacion',
+  };
 
   // ---------------- State ----------------
-  const state = { messages: 0, alerts: {}, lastIntent: null, pendingRow: null };
+  const state = { messages: 0, alerts: {}, lastIntent: null, pendingRow: null, risk: null };
+
+  // ---------------- Modelo real: Regresión Logística + Random Forest ----------------
+  // Entrenados con scikit-learn sobre una base de afiliados sintética (ver
+  // train_models.py) y exportados a assets/models.json. La inferencia corre
+  // aquí mismo, en el navegador, con los pesos/árboles reales del modelo.
+  let MODELS = null;
+  fetch('assets/models.json')
+    .then((r) => r.json())
+    .then((m) => { MODELS = m; paintModelMeta(); })
+    .catch(() => {});
+
+  // Perfil "vivo" del afiliado — arranca en valores neutrales y se actualiza
+  // con cada mensaje real del chat (no son casillas fijas: alimentan el modelo).
+  const profile = {
+    edad: 45, imc: 25, historial_familiar_diabetes: 0, num_citas_glucosa_6m: 0,
+    num_quejas_2m: 0, tiempo_respuesta_prom_h: 20, nps_score: 8, antiguedad: 6,
+  };
+  const DIAB_THRESHOLD = 0.45, RENOV_THRESHOLD = 0.5;
+
+  function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+  function predictLogreg(model, feat) {
+    const { mean, scale, coef, intercept } = model.logreg;
+    let z = intercept;
+    model.features.forEach((f, i) => { z += ((feat[f] - mean[i]) / scale[i]) * coef[i]; });
+    return sigmoid(z);
+  }
+  function evalTree(node, feat) {
+    if ('leaf' in node) return node.leaf;
+    return feat[node.f] <= node.th ? evalTree(node.l, feat) : evalTree(node.r, feat);
+  }
+  function predictRF(model, feat) {
+    const probs = model.rf.trees.map((t) => evalTree(t, feat));
+    return probs.reduce((a, b) => a + b, 0) / probs.length;
+  }
+  function predictEnsemble(model, feat) { return (predictLogreg(model, feat) + predictRF(model, feat)) / 2; }
+  function percentileOf(model, score) {
+    const arr = model.segment_sample;
+    let i = 0; while (i < arr.length && arr[i] <= score) i++;
+    return Math.round((i / arr.length) * 100);
+  }
+  function fallbackRisk() {
+    return { diab: { proba: 0, pct: 0, pctl: 0, high: false }, renov: { proba: 0, pct: 0, pctl: 0, high: false } };
+  }
+  function computeRisk() {
+    if (!MODELS) return null;
+    const diabP = predictEnsemble(MODELS.diabetes, profile);
+    const renovP = predictEnsemble(MODELS.no_renovacion, profile);
+    return {
+      diab: { proba: diabP, pct: Math.round(diabP * 100), pctl: percentileOf(MODELS.diabetes, diabP), high: diabP >= DIAB_THRESHOLD },
+      renov: { proba: renovP, pct: Math.round(renovP * 100), pctl: percentileOf(MODELS.no_renovacion, renovP), high: renovP >= RENOV_THRESHOLD },
+    };
+  }
+  function applyIntentToProfile(intent) {
+    if (intent.id === 'glucosa') profile.num_citas_glucosa_6m = Math.min(8, profile.num_citas_glucosa_6m + 1);
+    if (intent.id === 'queja') {
+      profile.num_quejas_2m = Math.min(6, profile.num_quejas_2m + 1);
+      profile.tiempo_respuesta_prom_h = Math.min(72, profile.tiempo_respuesta_prom_h + 6);
+      profile.nps_score = Math.max(1, profile.nps_score - 1.1);
+    }
+  }
+  function outcomeFromRisk(intent, risk) {
+    const branch = BRANCH[intent.id] || 'no_renovacion';
+    if (branch === 'diabetes') return { index: risk.diab.high ? 0 : 2, danger: risk.diab.high };
+    return { index: risk.renov.high ? 1 : 2, danger: risk.renov.high };
+  }
+  function plural(n, singular, plural2) { return n + ' ' + (n === 1 ? singular : plural2); }
+  function realStatsLine(intent, risk) {
+    const branch = BRANCH[intent.id] || 'no_renovacion';
+    if (branch === 'diabetes') {
+      return ' Modelo real (regresión logística + random forest): ' + risk.diab.pct + '% de probabilidad de riesgo de diabetes tipo 2 (percentil ' + risk.diab.pctl + ' del segmento, con ' + plural(profile.num_citas_glucosa_6m, 'consulta relacionada', 'consultas relacionadas') + ' a glucosa registrada' + (profile.num_citas_glucosa_6m === 1 ? '' : 's') + ').';
+    }
+    return ' Modelo real (regresión logística + random forest): ' + risk.renov.pct + '% de probabilidad de no renovación (percentil ' + risk.renov.pctl + ' del segmento, con ' + plural(profile.num_quejas_2m, 'queja registrada', 'quejas registradas') + ').';
+  }
+  function paintModelMeta() {
+    const el = document.getElementById('modelMeta');
+    if (!el || !MODELS) return;
+    el.textContent = 'Modelo real entrenado con scikit-learn sobre ' + MODELS.meta.trained_on.toLocaleString('es-EC') +
+      ' registros sintéticos · AUC diabetes ' + MODELS.diabetes.metrics.auc_logreg +
+      ' · AUC no renovación ' + MODELS.no_renovacion.metrics.auc_logreg;
+  }
 
   // ---------------- View switching ----------------
   const views = Array.from(document.querySelectorAll('.view'));
@@ -119,6 +197,8 @@
     addBubble(text, 'user');
     chatInput.value = '';
     const intent = matchIntent(text);
+    applyIntentToProfile(intent);
+    state.risk = computeRisk() || fallbackRisk();
     state.lastIntent = intent;
     state.messages++;
 
@@ -213,12 +293,6 @@
   const LAYER_COUNTS = [6, 9, 9, 7, 3];
   const INPUT_LABELS = ['Texto del mensaje', 'Edad y género', 'Historial de citas', 'Quejas registradas', 'Diagnósticos previos', 'Canal de contacto'];
   const OUTPUT_LABELS = ['Riesgo de salud', 'Riesgo de no renovación', 'Seguimiento estándar'];
-  const OUTCOME = {
-    'salud-alto': { index: 0, danger: true },
-    'salud-bajo': { index: 2, danger: false },
-    'queja-alto': { index: 1, danger: true },
-    'queja-bajo': { index: 2, danger: false },
-  };
   const LAYER_DELAY = 230, RAMP = 300;
 
   let netNodes = [], netEdges = [], netW = 0, netH = 0, netAnimId = null, netStart = 0, netSettled = false, netOutcome = null;
@@ -309,7 +383,7 @@
     } else {
       netSettled = true;
       drawNet(totalDur);
-      reasoningText.textContent = state.lastIntent.reasoning;
+      reasoningText.textContent = state.lastIntent.reasoning + realStatsLine(state.lastIntent, state.risk || fallbackRisk());
       btnGoCliente.disabled = false;
     }
   }
@@ -323,13 +397,14 @@
       reasoningText.textContent = 'Envía un mensaje en el Chat para ver el razonamiento del modelo.';
       return;
     }
-    netOutcome = OUTCOME[state.lastIntent.treePath];
+    const risk = state.risk || fallbackRisk();
+    netOutcome = outcomeFromRisk(state.lastIntent, risk);
     reasoningText.textContent = '';
     if (reduced) {
       netSettled = true;
       const totalDur = (LAYER_COUNTS.length - 1) * LAYER_DELAY + RAMP;
       drawNet(totalDur);
-      reasoningText.textContent = state.lastIntent.reasoning;
+      reasoningText.textContent = state.lastIntent.reasoning + realStatsLine(state.lastIntent, risk);
       btnGoCliente.disabled = false;
       return;
     }
@@ -359,41 +434,60 @@
 
   function renderClient() {
     statMsgs.textContent = state.messages;
-    if (state.lastIntent && state.lastIntent.alert) addAlert(state.lastIntent.alert);
+    const risk = state.risk || fallbackRisk();
+
+    if (risk.diab.high) {
+      addAlert({
+        key: 'diabetes', icon: '⚠️', title: 'Riesgo de diabetes tipo 2',
+        text: 'Modelo real (regresión logística + random forest): ' + risk.diab.pct + '% de probabilidad — percentil ' + risk.diab.pctl +
+          ' del segmento, con ' + plural(profile.num_citas_glucosa_6m, 'consulta relacionada', 'consultas relacionadas') + ' a glucosa en los últimos 6 meses.',
+        plan: ['Agendar control con endocrinología', 'Enviar material educativo sobre alimentación', 'Activar seguimiento trimestral de glucosa'],
+      });
+    }
+    if (risk.renov.high) {
+      addAlert({
+        key: 'renovacion', icon: '⚠️', title: 'Riesgo de no renovación',
+        text: 'Modelo real (regresión logística + random forest): ' + risk.renov.pct + '% de probabilidad — percentil ' + risk.renov.pctl +
+          ' del segmento, con ' + plural(profile.num_quejas_2m, 'queja registrada', 'quejas registradas') + ' recientemente.',
+        plan: ['Contacto proactivo de un asesor en 24h', 'Ofrecer compensación o mejora de plan', 'Marcar cuenta para seguimiento prioritario'],
+      });
+    }
     const count = Object.keys(state.alerts).length;
     statAlerts.textContent = count;
-    const highRisk = !!state.alerts.renovacion;
-    statRenewal.textContent = highRisk ? 'Alto' : 'Bajo';
-    statRenewalWrap.classList.toggle('risk', highRisk);
+    statRenewal.textContent = risk.renov.high ? 'Alto' : 'Bajo';
+    statRenewalWrap.classList.toggle('risk', risk.renov.high);
     alertBaseline.style.display = count ? 'none' : 'flex';
 
-    const segmentAvg = 20;
-    const pct = highRisk ? 68 : (state.alerts.diabetes ? 22 : 12);
     if (riskGauge) {
+      const pct = risk.renov.pct;
+      const segmentAvgPct = Math.round((MODELS ? MODELS.no_renovacion.segment_mean : 0.17) * 100);
       riskGauge.style.setProperty('--pct', pct);
-      riskGauge.classList.toggle('risk', highRisk);
-      riskGaugeLabel.textContent = highRisk ? 'Alto' : 'Bajo';
+      riskGauge.classList.toggle('risk', risk.renov.high);
+      riskGaugeLabel.textContent = risk.renov.high ? 'Alto' : 'Bajo';
       riskPctEl.textContent = pct + '%';
-      const delta = pct - segmentAvg;
-      riskDeltaEl.classList.toggle('risk', highRisk);
-      riskDeltaEl.textContent = delta === 0
+      const delta = pct - segmentAvgPct;
+      riskDeltaEl.classList.toggle('risk', risk.renov.high);
+      riskDeltaEl.textContent = (delta === 0
         ? 'en línea con el promedio del segmento'
-        : (delta > 0 ? '↑ ' + delta + '% vs. promedio del segmento' : '↓ ' + Math.abs(delta) + '% vs. promedio del segmento');
+        : (delta > 0 ? '↑ ' + delta + '% vs. promedio del segmento' : '↓ ' + Math.abs(delta) + '% vs. promedio del segmento')) +
+        ' · percentil ' + risk.renov.pctl;
     }
     if (opText) {
-      if (highRisk) opText.textContent = 'Recomendación personalizada: contacto proactivo de un asesor de retención y revisión del plan en las próximas 24h.';
-      else if (state.alerts.diabetes) opText.textContent = 'Recomendación personalizada: programa de control de glucosa, seguimiento nutricional y recordatorio de citas con endocrinología.';
+      if (risk.renov.high) opText.textContent = 'Recomendación personalizada: contacto proactivo de un asesor de retención y revisión del plan en las próximas 24h.';
+      else if (risk.diab.high) opText.textContent = 'Recomendación personalizada: programa de control de glucosa, seguimiento nutricional y recordatorio de citas con endocrinología.';
       else opText.textContent = 'Recomendación personalizada: recordatorio de control médico y programa de bienestar.';
     }
   }
   function addAlert(a) {
-    if (state.alerts[a.key]) return;
-    state.alerts[a.key] = true;
-    const div = document.createElement('div');
-    div.className = 'alert-card warn';
+    let div = state.alerts[a.key];
+    if (!div) {
+      div = document.createElement('div');
+      div.className = 'alert-card warn';
+      alertsWrap.appendChild(div);
+      state.alerts[a.key] = div;
+    }
     div.innerHTML = '<span class="alert-ic">' + a.icon + '</span><div><b>' + a.title + '</b><p>' + a.text + '</p>' +
       '<ul>' + a.plan.map((p) => '<li>' + p + '</li>').join('') + '</ul></div>';
-    alertsWrap.appendChild(div);
   }
 
   // ---------------- Ambient background particles ----------------

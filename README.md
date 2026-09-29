@@ -18,13 +18,47 @@ Publicado con GitHub Pages: `https://domebe12.github.io/ConfIAbot/`
 
 Las pestañas de Almacenamiento / Procesamiento / Cliente interno se desbloquean después del primer mensaje y quedan disponibles para navegar libremente. Todo el diseño es responsivo (teléfono, tablet y escritorio).
 
+## El modelo de Machine Learning es real
+
+No es un guion con `if/else` disfrazado de IA: `ml/train_models.py` genera una base
+de afiliados **sintética** (imaginaria, pero con relaciones estadísticas
+plausibles) y entrena con **scikit-learn** dos pares de modelos reales:
+
+- **Riesgo de diabetes tipo 2** — según edad, IMC, historial familiar y consultas
+  relacionadas a glucosa.
+- **Riesgo de no renovación** — según quejas recientes, tiempo de respuesta
+  promedio, NPS y antigüedad.
+
+Cada par es una **Regresión Logística** (pesos + estandarización) y un
+**Random Forest** (12 árboles reales, serializados nodo por nodo). Todo se
+exporta a `assets/models.json` y la inferencia corre **en el navegador**,
+en `script.js` (sigmoid, recorrido de árboles y promedio del ensemble) —
+sin backend ni llamadas a una API externa.
+
+El chat alimenta un "perfil vivo" del afiliado: cada mensaje que menciona
+glucosa o una queja incrementa las variables reales del modelo (número de
+consultas, número de quejas, NPS, tiempo de respuesta), y el modelo
+recalcula la probabilidad real en cada envío — por eso el número de
+Procesamiento y las alertas de Cliente interno cambian genuinamente
+mientras conversas, en vez de mostrar un porcentaje fijo. El percentil
+"vs. promedio del segmento" también es real: se compara contra una muestra
+de 400 afiliados sintéticos calculada en el entrenamiento.
+
+Para reentrenar (o ajustar la base sintética):
+
+```
+pip install scikit-learn numpy pandas
+python3 ml/train_models.py   # regenera assets/models.json
+```
+
 ## Estructura
 
 ```
 index.html   — las 5 vistas de la app
 style.css    — tema visual: portal claro (Inicio/Chat) + panel oscuro futurista (Almacenamiento/Procesamiento/Cliente)
-script.js    — motor de intenciones, máquina de vistas, red neuronal animada, medidor de riesgo
-assets/      — mascota, fotografía de perfil, red neuronal, cerebro, Random Forest y base de datos — todo recortado del material real de referencia (nunca dibujado con CSS)
+script.js    — motor de intenciones, máquina de vistas, red neuronal animada, medidor de riesgo, inferencia real del modelo
+ml/train_models.py — entrena los modelos reales (Regresión Logística + Random Forest) sobre datos sintéticos y genera assets/models.json
+assets/      — mascota, fotografía de perfil, red neuronal, cerebro, Random Forest, base de datos (recortes reales del material de referencia) y models.json (modelo entrenado)
 storyboard/  — versión anterior: recorrido animado de 12 pasos idéntico al storyboard de referencia (se conserva por separado)
 ```
 

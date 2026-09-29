@@ -261,6 +261,7 @@ main#app{ position:relative; z-index:1; }
 .pipe-art{ display:block; width:100%; max-width:150px; margin:8px auto; border-radius:12px; }
 .pipe-art.wide{ max-width:220px; }
 .pipe-sub{ display:block; text-align:center; font-size:11px; margin-top:4px; }
+.pipe-sub.model-meta{ color:#7fe3f5; font-family:var(--font-mono); font-size:10px; margin-top:8px; }
 .db-col{ align-items:center; text-align:center; justify-content:center; background:rgba(255,255,255,0.05); border:1px solid rgba(114,190,230,0.2); border-radius:16px; padding:14px; }
 
 .ml-grid{ display:grid; grid-template-columns:1fr 1.15fr; gap:16px; align-items:stretch; min-width:0; }
