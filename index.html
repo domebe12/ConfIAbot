@@ -11,11 +11,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="pre-portal">
 
 <canvas id="bgCanvas" aria-hidden="true"></canvas>
 
-<header class="top">
+<header class="top" id="topHeader">
   <div class="brand">
     <img class="mascot-img mascot-img--sm" src="assets/mascot-avatar.png" alt="Mascota ConfIAbot">
     <div>
@@ -34,8 +34,27 @@
 
 <main id="app">
 
+  <!-- ===================== BIENVENIDA (contexto) ===================== -->
+  <section class="view active" data-view="bienvenida">
+    <div class="view-inner center-inner welcome-inner">
+      <img class="mascot-img mascot-img--sm welcome-badge" src="assets/mascot-avatar.png" alt="ConfIAbot">
+      <div class="eyebrow">Simulación interactiva · Shark Tank Confiamed</div>
+      <h2 class="hero-title">Vas a vivir la experiencia de una afiliada real</h2>
+      <p class="hero-sub">Antes de empezar, este es el contexto: María es afiliada de Confiamed desde hace <b>6 años</b>, tiene el <b>Plan Oro</b> y está a punto de entrar a su portal para resolver una consulta con ConfIAbot. Vas a ver, paso a paso, todo lo que pasa detrás de escena — desde que escribe su mensaje hasta que el modelo predictivo genera una recomendación real para su caso.</p>
+      <div class="context-card">
+        <img class="context-photo" src="assets/client-photo.png" alt="María Fernández López">
+        <div>
+          <b>María Fernández López</b>
+          <small>Cédula 1102567412 · 45 años · Femenino</small>
+          <div class="id-badges"><span class="status-pill">● Activa</span><span class="status-pill plan">Plan Oro</span><span class="status-pill plan">Antigüedad 6 años</span></div>
+        </div>
+      </div>
+      <button class="btn primary big" id="btnEnterPortal" type="button">Entrar al portal de afiliados →</button>
+    </div>
+  </section>
+
   <!-- ===================== INICIO (portal) ===================== -->
-  <section class="view active" data-view="inicio">
+  <section class="view" data-view="inicio">
     <div class="view-inner">
       <div class="portal-mock">
         <aside class="portal-side">
@@ -64,7 +83,7 @@
           <div class="hero-hint">💡 Prueba a mencionar algo como "tengo 4 citas por mi glucosa" o "ya es la tercera vez que me quejo" para ver alertas especiales.</div>
         </div>
         <div class="portal-mascot-wrap">
-          <img class="portal-mascot" src="assets/hero-mascot-portal.png" alt="ConfIAbot">
+          <img class="portal-mascot" src="assets/mascot-hero.png" alt="ConfIAbot">
         </div>
       </div>
     </div>
@@ -118,8 +137,9 @@
           </div>
         </div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-col db-col">
-          <img class="pipe-art" src="assets/art-database.png" alt="Base de datos única">
+        <div class="pipe-col db-col" id="dbCol">
+          <span class="db-badge" id="dbBadge">+1 registro</span>
+          <img class="pipe-art" id="dbArt" src="assets/art-database.png" alt="Base de datos única">
           <b class="pipe-box-title center">Base de datos única</b>
           <small class="pipe-sub">Todos los datos, en un solo lugar</small>
         </div>
@@ -133,6 +153,7 @@
           <tbody id="storeBody"></tbody>
         </table>
       </div>
+      <button class="btn primary" id="btnGuardar" type="button" disabled>💾 Guardar en base de datos</button>
       <button class="btn primary" id="btnGoProc" type="button" disabled>Ver modelos de Machine Learning →</button>
     </div>
   </section>
@@ -142,7 +163,13 @@
     <div class="view-inner dark-inner">
       <div class="view-head dark-head">
         <h2>Modelos de Machine Learning</h2>
-        <p>El motor recorre el historial del afiliado y razona igual que lo haría un analista — solo que en milisegundos.</p>
+        <p>La base de datos ya combina Afiliados, Brókers y Prestadores. Ahora esa información alimenta los modelos en tiempo real, y el motor razona igual que lo haría un analista — solo que en milisegundos.</p>
+      </div>
+
+      <div class="flow-bar dark-card" id="flowBar">
+        <div class="flow-node"><img class="flow-ic" src="assets/art-database.png" alt=""><span>Base de datos única</span></div>
+        <div class="flow-line"><span class="flow-dot" style="--d:0s"></span><span class="flow-dot" style="--d:.5s"></span><span class="flow-dot" style="--d:1s"></span></div>
+        <div class="flow-node"><span class="flow-ic-emoji">🤖</span><span>Modelos de Machine Learning</span></div>
       </div>
 
       <div class="ml-grid">
@@ -196,7 +223,21 @@
         <p>Información que se convierte en acción: una visión completa y predictiva del afiliado.</p>
       </div>
 
-      <div class="client-card dark-card">
+      <div class="client-search-wrap dark-card">
+        <div class="client-search">
+          <span class="search-ic">🔍</span>
+          <input id="clientSearch" type="text" autocomplete="off" placeholder="Buscar afiliado por nombre o cédula…">
+        </div>
+        <div class="search-suggestions" id="searchSuggestions"></div>
+      </div>
+
+      <div class="client-empty" id="clientEmpty">
+        <span class="client-empty-ic">🗂️</span>
+        <p>Busca a <b>María Fernández López</b> (o su cédula) arriba para abrir su ficha — es el caso que acabas de trabajar en el chat.</p>
+      </div>
+
+      <div id="clientResults" hidden>
+      <div class="client-card dark-card" id="clientCard">
         <div class="client-head">
           <img class="client-photo" src="assets/client-photo.png" alt="Foto de María Fernández López">
           <div class="client-id">
@@ -227,8 +268,9 @@
         </div>
 
         <div class="pipe-box dark-card">
-          <b class="pipe-box-title">⭐ Oportunidades</b>
+          <b class="pipe-box-title">⭐ Estrategia recomendada</b>
           <p class="op-text" id="opText">Recomendación personalizada: recordatorio de control médico y programa de bienestar.</p>
+          <ul class="pipe-list strategy-list" id="strategyList"></ul>
         </div>
       </div>
 
@@ -236,7 +278,10 @@
         <b class="pipe-box-title">🧠 Modelo predictivo en acción</b>
         <div class="predictivo-row">
           <img class="pipe-art" src="assets/art-brain-predictive.png" alt="IA">
-          <img class="pipe-art wide" src="assets/art-random-forest.png" alt="Random Forest — resultado final: bajo riesgo de no renovación">
+          <div class="forest-wrap">
+            <small class="pipe-sub model-meta" id="forestCaption">→ Random Forest — un árbol real del modelo, con el camino de decisión resaltado</small>
+            <svg id="forestSvg" class="forest-svg" viewBox="0 0 300 195" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
         </div>
       </div>
 
@@ -260,6 +305,7 @@
       </div>
 
       <div class="closing-mark"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestro prioridad</small></div></div>
+      </div>
     </div>
   </section>
 

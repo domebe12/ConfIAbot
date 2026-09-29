@@ -7,6 +7,7 @@
       id: 'glucosa',
       test: (t) => /gluco|az[uú]car|diabet/.test(t),
       label: 'Riesgo de salud (glucosa)',
+      followUp: 'Entiendo, gracias por contarme. ¿Hace cuánto notas esto y ya lo has consultado con algún médico?',
       botReply: 'Veo que mencionas temas de glucosa. Ya registré esto junto a tu historial reciente — cuentas con varias consultas relacionadas. Te recomiendo agendar un control con endocrinología cuanto antes.',
       reasoning: 'Se detectan consultas relacionadas a glucosa, combinadas con la edad del afiliado. El modelo activa la rama de "Señales de salud".',
       treePath: 'salud-alto',
@@ -15,6 +16,7 @@
       id: 'queja',
       test: (t) => /quej|reclam|molest|insatisf|mal servicio|p[eé]sim|no.{0,3}resuelv/.test(t),
       label: 'Riesgo de satisfacción (queja)',
+      followUp: 'Lamento mucho escuchar eso. ¿Podrías contarme brevemente qué pasó, para escalarlo con el equipo correcto?',
       botReply: 'Lamento que hayas tenido inconvenientes. Registré tu comentario — veo que no es la primera vez, así que lo estoy escalando a nuestro equipo de retención para un seguimiento personalizado.',
       reasoning: 'Se detectan quejas repetidas. El modelo activa la rama de "Señales de satisfacción".',
       treePath: 'queja-alto',
@@ -22,6 +24,7 @@
     {
       id: 'cita', test: (t) => /cita|turno|agendar|consulta m[eé]dica/.test(t),
       label: 'Consulta de cita médica',
+      followUp: 'Claro que sí, dame un momento para revisar tu agenda. ¿Tienes alguna fecha en mente o prefieres la próxima disponible?',
       botReply: 'Tu próxima cita es el 15 de octubre de 2025 a las 10:30 a.m. con el Dr. Andrés López en Clínica SanVida. ¿Quieres que te la recuerde un día antes?',
       reasoning: 'Consulta puntual sobre citas médicas, sin patrón de riesgo asociado. El modelo sigue la rama de "Señales de salud" con desenlace de seguimiento estándar.',
       treePath: 'salud-bajo',
@@ -29,6 +32,7 @@
     {
       id: 'reembolso', test: (t) => /reembolso|reintegr|devoluci[oó]n/.test(t),
       label: 'Solicitud de reembolso',
+      followUp: 'Con gusto te ayudo. ¿Ya tienes la factura y el comprobante de pago a la mano?',
       botReply: 'Para tu reembolso necesito la factura y el comprobante de pago. Ya inicié la solicitud — te llegará una confirmación por correo en las próximas 24 horas.',
       reasoning: 'Solicitud administrativa estándar. No se activan señales de riesgo; el modelo la clasifica como interacción informativa normal.',
       treePath: 'queja-bajo',
@@ -36,6 +40,7 @@
     {
       id: 'receta', test: (t) => /receta|medicamento|farmacia|pastilla/.test(t),
       label: 'Consulta de receta',
+      followUp: 'Claro. ¿Es para retirar una receta que ya tienes activa o necesitas que un médico te emita una nueva?',
       botReply: 'Tu receta activa incluye Losartán 50mg — puedes reclamarla en cualquier farmacia afiliada presentando tu cédula. ¿Quieres que te muestre las farmacias más cercanas?',
       reasoning: 'Consulta puntual sobre medicación, sin patrón de riesgo asociado. Camino de seguimiento estándar dentro de "Señales de salud".',
       treePath: 'salud-bajo',
@@ -43,6 +48,7 @@
     {
       id: 'autorizacion', test: (t) => /autorizaci|procedimiento|cirug[ií]a/.test(t),
       label: 'Autorización de procedimiento',
+      followUp: 'Perfecto, reviso eso contigo. ¿Es una autorización nueva o le estás dando seguimiento a una que ya enviaste?',
       botReply: 'Tu solicitud de autorización fue recibida y está en revisión por nuestro equipo médico. El tiempo estimado de respuesta es de 48 horas.',
       reasoning: 'Solicitud administrativa estándar. Interacción informativa normal, sin señales de riesgo.',
       treePath: 'queja-bajo',
@@ -50,7 +56,8 @@
   ];
   const DEFAULT_INTENT = {
     id: 'general', label: 'Consulta general',
-    botReply: 'Gracias por tu mensaje, lo registré. Mientras lo reviso más a fondo, ¿hay algo puntual en lo que te pueda ayudar — una cita, un reembolso, una receta o una autorización?',
+    followUp: 'Cuéntame un poco más para poder ayudarte mejor — ¿es sobre una cita, un reembolso, una receta o una autorización?',
+    botReply: 'Gracias por la información, ya quedó registrado. Si necesitas algo puntual sobre una cita, un reembolso, una receta o una autorización, aquí estoy.',
     reasoning: 'El mensaje no coincide con un patrón de riesgo conocido. El modelo lo clasifica como interacción informativa normal y sigue aprendiendo del historial del afiliado.',
     treePath: 'queja-bajo',
   };
@@ -108,6 +115,64 @@
   function fallbackRisk() {
     return { diab: { proba: 0, pct: 0, pctl: 0, high: false }, renov: { proba: 0, pct: 0, pctl: 0, high: false } };
   }
+
+  // Dibuja UN árbol real del Random Forest entrenado (no un dibujo aproximado):
+  // recorre el árbol con el perfil actual y resalta el camino de decisión real.
+  const FEATURE_SHORT = {
+    edad: 'edad', imc: 'IMC', historial_familiar_diabetes: 'hist. familiar', num_citas_glucosa_6m: 'citas glucosa',
+    num_quejas_2m: 'quejas', tiempo_respuesta_prom_h: 't. respuesta', nps_score: 'NPS', antiguedad: 'antigüedad',
+  };
+  function layoutTree(node, feat, depth, x0, x1, onPath, out) {
+    const x = (x0 + x1) / 2;
+    const id = out.nodes.length;
+    out.nodes.push({ x, y: depth, node, onPath });
+    out.maxDepth = Math.max(out.maxDepth, depth);
+    if (!('leaf' in node)) {
+      const goRight = feat[node.f] > node.th;
+      const li = layoutTree(node.l, feat, depth + 1, x0, x, onPath && !goRight, out);
+      const ri = layoutTree(node.r, feat, depth + 1, x, x1, onPath && goRight, out);
+      out.edges.push({ x1: x, y1: depth, x2: out.nodes[li].x, y2: depth + 1, onPath: onPath && !goRight });
+      out.edges.push({ x1: x, y1: depth, x2: out.nodes[ri].x, y2: depth + 1, onPath: onPath && goRight });
+    }
+    return id;
+  }
+  function leafColor(p) {
+    const r = Math.round(24 + (255 - 24) * p), g = Math.round(168 - (168 - 60) * p), b = Math.round(150 - 110 * p);
+    return `rgb(${r},${g},${b})`;
+  }
+  function renderForestSVG(model, feat, treeIdx) {
+    const svg = document.getElementById('forestSvg');
+    const caption = document.getElementById('forestCaption');
+    if (!svg || !model) return;
+    const tree = model.rf.trees[treeIdx % model.rf.trees.length];
+    const out = { nodes: [], edges: [], maxDepth: 0 };
+    layoutTree(tree, feat, 0, 8, 292, true, out);
+    const rowH = 145 / (out.maxDepth + 1);
+    const py = (d) => 26 + d * rowH;
+    let svgParts = [];
+    out.edges.forEach((e) => {
+      svgParts.push(`<line x1="${e.x1}" y1="${py(e.y1)}" x2="${e.x2}" y2="${py(e.y2)}" stroke="${e.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.14)'}" stroke-width="${e.onPath ? 2.4 : 1.2}"/>`);
+    });
+    out.nodes.forEach((n) => {
+      const isLeaf = 'leaf' in n.node;
+      const cy = py(n.y);
+      if (isLeaf) {
+        const fill = n.onPath ? leafColor(n.node.leaf) : 'rgba(255,255,255,0.28)';
+        const r = n.onPath ? 8 : 5;
+        svgParts.push(`<circle cx="${n.x}" cy="${cy}" r="${r}" fill="${fill}" stroke="${n.onPath ? '#fff' : 'none'}" stroke-width="1.2"/>`);
+        if (n.onPath) svgParts.push(`<text class="leaf-label" x="${n.x}" y="${cy + 20}" font-size="9" text-anchor="middle" fill="#fff">${Math.round(n.node.leaf * 100)}%</text>`);
+      } else {
+        const fill = n.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.5)';
+        svgParts.push(`<circle cx="${n.x}" cy="${cy}" r="${n.onPath ? 5.5 : 3.5}" fill="${fill}"/>`);
+        if (n.onPath) svgParts.push(`<text x="${n.x}" y="${cy - 9}" font-size="7.5" text-anchor="middle">${FEATURE_SHORT[n.node.f] || n.node.f} ≤ ${n.node.th.toFixed(1)}</text>`);
+      }
+    });
+    svg.innerHTML = svgParts.join('');
+    if (caption) {
+      const label = model === (MODELS && MODELS.diabetes) ? 'riesgo de diabetes tipo 2' : 'riesgo de no renovación';
+      caption.textContent = '→ Random Forest — árbol #' + (treeIdx + 1) + ' del modelo real (' + label + '), camino de decisión resaltado';
+    }
+  }
   function computeRisk() {
     if (!MODELS) return null;
     const diabP = predictEnsemble(MODELS.diabetes, profile);
@@ -152,6 +217,7 @@
   function showView(name) {
     views.forEach((v) => v.classList.toggle('active', v.dataset.view === name));
     tabBtns.forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+    document.body.classList.toggle('pre-portal', name === 'bienvenida');
     if (name === 'almacenamiento') renderPendingRow();
     if (name === 'procesamiento') playNetwork();
     if (name === 'cliente') renderClient();
@@ -162,6 +228,7 @@
     if (b) b.disabled = false;
   }
   tabBtns.forEach((b) => b.addEventListener('click', () => { if (!b.disabled) showView(b.dataset.view); }));
+  document.getElementById('btnEnterPortal').addEventListener('click', () => showView('inicio'));
   const btnOpenChat = document.getElementById('btnOpenChat');
   btnOpenChat.addEventListener('click', () => showView('chat'));
   btnOpenChat.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView('chat'); } });
@@ -190,13 +257,33 @@
     return d;
   }
 
+  // Conversación de 2 turnos: el bot primero pregunta algo puntual y solo
+  // cierra (y manda a Almacenamiento) después de la respuesta del usuario —
+  // para que se sienta como una conversación real, no una respuesta única.
+  let convo = null; // { intent, firstText }
+
   chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = chatInput.value.trim();
     if (!text) return;
     addBubble(text, 'user');
     chatInput.value = '';
-    const intent = matchIntent(text);
+
+    if (!convo) {
+      // Turno 1: detectar intención y hacer una pregunta de seguimiento real.
+      const intent = matchIntent(text);
+      convo = { intent, firstText: text };
+      const typing = addTyping();
+      setTimeout(() => {
+        typing.remove();
+        addBubble(intent.followUp || intent.botReply, 'bot');
+      }, reduced ? 50 : 850);
+      return;
+    }
+
+    // Turno 2: el usuario respondió — cerramos la interacción de verdad.
+    const { intent, firstText } = convo;
+    convo = null;
     applyIntentToProfile(intent);
     state.risk = computeRisk() || fallbackRisk();
     state.lastIntent = intent;
@@ -205,8 +292,8 @@
     const typing = addTyping();
     setTimeout(() => {
       typing.remove();
-      addBubble(intent.botReply, 'bot');
-      queueStorageRow(text, intent);
+      addBubble('Gracias por la información. ' + intent.botReply, 'bot');
+      queueStorageRow(firstText, intent);
       unlockTab('almacenamiento'); unlockTab('procesamiento'); unlockTab('cliente');
       showToast();
     }, reduced ? 50 : 950);
@@ -251,7 +338,11 @@
     return 'Hoy · ' + new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
   }
   function renderPendingRow() {
-    if (!state.pendingRow) { btnGoProc.disabled = state.lastIntent === null; return; }
+    if (!state.pendingRow) {
+      btnGoProc.disabled = state.lastIntent === null || !!pendingSaveRow;
+      btnGuardar.disabled = !pendingSaveRow;
+      return;
+    }
     const r = state.pendingRow; state.pendingRow = null;
     const tr = document.createElement('tr');
     tr.classList.add('new-row');
@@ -280,9 +371,24 @@
   function finishRow(tr, r) {
     tr.querySelector('.caret')?.remove();
     tr.children[3].innerHTML = '<span class="tag-intent">' + r.intent + '</span>';
-    tr.children[4].innerHTML = '<span class="tag-state ok">Guardado ✓</span>';
-    btnGoProc.disabled = false;
+    tr.children[4].innerHTML = '<span class="tag-state pending">Listo para guardar</span>';
+    pendingSaveRow = tr;
+    btnGuardar.disabled = false;
   }
+  let pendingSaveRow = null;
+  const btnGuardar = document.getElementById('btnGuardar');
+  const dbCol = document.getElementById('dbCol');
+  const dbBadge = document.getElementById('dbBadge');
+  btnGuardar.addEventListener('click', () => {
+    if (!pendingSaveRow) return;
+    pendingSaveRow.children[4].innerHTML = '<span class="tag-state ok">Guardado ✓</span>';
+    pendingSaveRow = null;
+    btnGuardar.disabled = true;
+    dbCol.classList.remove('db-pulse'); void dbCol.offsetWidth; dbCol.classList.add('db-pulse');
+    dbBadge.classList.remove('show'); void dbBadge.offsetWidth; dbBadge.classList.add('show');
+    setTimeout(() => dbCol.classList.remove('db-pulse'), 1200);
+    setTimeout(() => { btnGoProc.disabled = false; }, reduced ? 50 : 500);
+  });
 
   // ---------------- Procesamiento (red neuronal profunda) ----------------
   const reasoningText = document.getElementById('reasoningText');
@@ -419,6 +525,52 @@
     }
   });
 
+  // ---------------- Cliente interno: buscador de afiliado ----------------
+  const AFFILIATES = [
+    { name: 'María Fernández López', cedula: '1102567412', real: true },
+    { name: 'Carlos Mendoza Ruiz', cedula: '0923456781', real: false },
+    { name: 'Ana Torres Vega', cedula: '1756789012', real: false },
+  ];
+  const clientSearch = document.getElementById('clientSearch');
+  const searchSuggestions = document.getElementById('searchSuggestions');
+  const clientEmpty = document.getElementById('clientEmpty');
+  const clientResults = document.getElementById('clientResults');
+  let clientSelected = false;
+
+  function norm(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function renderSuggestions(query) {
+    const q = norm(query.trim());
+    if (!q) { searchSuggestions.classList.remove('show'); return; }
+    const matches = AFFILIATES.filter((a) => norm(a.name).includes(q) || a.cedula.includes(q));
+    if (!matches.length) { searchSuggestions.classList.remove('show'); return; }
+    searchSuggestions.innerHTML = matches.map((a) =>
+      '<div class="suggestion-item" data-name="' + a.name + '">' + a.name + ' <small>' + a.cedula + '</small></div>').join('');
+    searchSuggestions.classList.add('show');
+  }
+  clientSearch.addEventListener('input', () => renderSuggestions(clientSearch.value));
+  clientSearch.addEventListener('focus', () => renderSuggestions(clientSearch.value));
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.client-search-wrap')) searchSuggestions.classList.remove('show');
+  });
+  searchSuggestions.addEventListener('click', (e) => {
+    const item = e.target.closest('.suggestion-item');
+    if (!item) return;
+    const affiliate = AFFILIATES.find((a) => a.name === item.dataset.name);
+    clientSearch.value = affiliate.name;
+    searchSuggestions.classList.remove('show');
+    if (affiliate.real) {
+      clientSelected = true;
+      clientEmpty.hidden = true;
+      clientResults.hidden = false;
+      renderClient();
+    } else {
+      clientSelected = false;
+      clientResults.hidden = true;
+      clientEmpty.hidden = false;
+      clientEmpty.innerHTML = '<span class="client-empty-ic">🚧</span><p>Esta demo solo tiene datos en vivo para <b>María Fernández López</b> — el caso que trabajaste en el chat. Búscala para ver su ficha completa.</p>';
+    }
+  });
+
   // ---------------- Cliente interno ----------------
   const statMsgs = document.getElementById('statMsgs');
   const statAlerts = document.getElementById('statAlerts');
@@ -432,6 +584,10 @@
   const riskDeltaEl = document.getElementById('riskDelta');
   const opText = document.getElementById('opText');
 
+  const DIAB_PLAN = ['Agendar control con endocrinología', 'Enviar material educativo sobre alimentación', 'Activar seguimiento trimestral de glucosa'];
+  const RENOV_PLAN = ['Contacto proactivo de un asesor en 24h', 'Ofrecer compensación o mejora de plan', 'Marcar cuenta para seguimiento prioritario'];
+  const DEFAULT_PLAN = ['Continuar monitoreo estándar', 'Enviar recordatorio de bienestar preventivo'];
+
   function renderClient() {
     statMsgs.textContent = state.messages;
     const risk = state.risk || fallbackRisk();
@@ -441,7 +597,7 @@
         key: 'diabetes', icon: '⚠️', title: 'Riesgo de diabetes tipo 2',
         text: 'Modelo real (regresión logística + random forest): ' + risk.diab.pct + '% de probabilidad — percentil ' + risk.diab.pctl +
           ' del segmento, con ' + plural(profile.num_citas_glucosa_6m, 'consulta relacionada', 'consultas relacionadas') + ' a glucosa en los últimos 6 meses.',
-        plan: ['Agendar control con endocrinología', 'Enviar material educativo sobre alimentación', 'Activar seguimiento trimestral de glucosa'],
+        plan: DIAB_PLAN,
       });
     }
     if (risk.renov.high) {
@@ -449,8 +605,13 @@
         key: 'renovacion', icon: '⚠️', title: 'Riesgo de no renovación',
         text: 'Modelo real (regresión logística + random forest): ' + risk.renov.pct + '% de probabilidad — percentil ' + risk.renov.pctl +
           ' del segmento, con ' + plural(profile.num_quejas_2m, 'queja registrada', 'quejas registradas') + ' recientemente.',
-        plan: ['Contacto proactivo de un asesor en 24h', 'Ofrecer compensación o mejora de plan', 'Marcar cuenta para seguimiento prioritario'],
+        plan: RENOV_PLAN,
       });
+    }
+    const strategyList = document.getElementById('strategyList');
+    if (strategyList) {
+      const items = [...(risk.renov.high ? RENOV_PLAN : []), ...(risk.diab.high ? DIAB_PLAN : [])];
+      strategyList.innerHTML = (items.length ? items : DEFAULT_PLAN).map((p) => '<li>' + p + '</li>').join('');
     }
     const count = Object.keys(state.alerts).length;
     statAlerts.textContent = count;
@@ -476,6 +637,10 @@
       if (risk.renov.high) opText.textContent = 'Recomendación personalizada: contacto proactivo de un asesor de retención y revisión del plan en las próximas 24h.';
       else if (risk.diab.high) opText.textContent = 'Recomendación personalizada: programa de control de glucosa, seguimiento nutricional y recordatorio de citas con endocrinología.';
       else opText.textContent = 'Recomendación personalizada: recordatorio de control médico y programa de bienestar.';
+    }
+    if (MODELS) {
+      const showDiab = risk.diab.proba >= risk.renov.proba;
+      renderForestSVG(showDiab ? MODELS.diabetes : MODELS.no_renovacion, profile, 0);
     }
   }
   function addAlert(a) {
