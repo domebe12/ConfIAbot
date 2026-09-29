@@ -34,16 +34,39 @@
 
 <main id="app">
 
-  <!-- ===================== INICIO ===================== -->
+  <!-- ===================== INICIO (portal) ===================== -->
   <section class="view active" data-view="inicio">
-    <div class="view-inner center-inner">
-      <div class="hero-mascot-wrap">
-        <img class="hero-mascot" src="assets/mascot-hero.png" alt="ConfIAbot">
+    <div class="view-inner">
+      <div class="portal-mock">
+        <aside class="portal-side">
+          <div class="portal-logo"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestro prioridad</small></div></div>
+          <ul class="portal-nav">
+            <li class="active">🏠 Inicio</li>
+            <li>📄 Mis solicitudes</li>
+            <li>✅ Autorizaciones</li>
+            <li>💳 Reembolsos</li>
+            <li>🩺 Citas médicas</li>
+            <li>⋯ Más</li>
+          </ul>
+        </aside>
+        <div class="portal-main">
+          <div class="portal-greet">
+            <h2>Hola, María</h2>
+            <p>¿En qué podemos ayudarte hoy?</p>
+          </div>
+          <div class="portal-cards">
+            <div class="portal-card"><span class="pc-ic">✅</span><b>Autorizaciones</b><small>Solicita y da seguimiento</small></div>
+            <div class="portal-card"><span class="pc-ic">🩺</span><b>Citas médicas</b><small>Agenda tu cita</small></div>
+            <div class="portal-card"><span class="pc-ic">💳</span><b>Reembolsos</b><small>Consulta tu estado</small></div>
+            <div class="portal-card highlight" id="btnOpenChat" role="button" tabindex="0"><span class="pc-ic">🤖</span><b>ConfIAbot</b><small>Tu asistente inteligente</small></div>
+          </div>
+          <p class="hero-sub">Pregúntame lo que necesites — citas, reembolsos, recetas o autorizaciones — y te muestro exactamente qué pasa detrás de escena: cómo guardo tu mensaje, cómo lo procesa el modelo, y qué aprende sobre tu perfil.</p>
+          <div class="hero-hint">💡 Prueba a mencionar algo como "tengo 4 citas por mi glucosa" o "ya es la tercera vez que me quejo" para ver alertas especiales.</div>
+        </div>
+        <div class="portal-mascot-wrap">
+          <img class="portal-mascot" src="assets/hero-mascot-portal.png" alt="ConfIAbot">
+        </div>
       </div>
-      <h2 class="hero-title">Hola, soy ConfIAbot</h2>
-      <p class="hero-sub">Pregúntame lo que necesites — citas, reembolsos, recetas o autorizaciones — y te mostraré exactamente qué pasa detrás de escena: cómo guardo tu mensaje, cómo lo procesa el modelo, y qué aprende sobre tu perfil.</p>
-      <button class="btn primary big" id="btnOpenChat" type="button">Abrir chat →</button>
-      <div class="hero-hint">💡 Prueba a mencionar algo como "tengo 4 citas por mi glucosa" o "ya es la tercera vez que me quejo" para ver alertas especiales.</div>
     </div>
   </section>
 
@@ -70,14 +93,39 @@
     </div>
   </section>
 
-  <!-- ===================== ALMACENAMIENTO ===================== -->
+  <!-- ===================== ALMACENAMIENTO (pipeline oscuro) ===================== -->
   <section class="view" data-view="almacenamiento">
-    <div class="view-inner">
-      <div class="view-head">
-        <h2>Almacenamiento</h2>
-        <p>Cada mensaje se transforma en un registro estructurado — como un RPA escribiendo directo en la base de datos.</p>
+    <div class="view-inner dark-inner">
+      <div class="view-head dark-head">
+        <h2>La información entra</h2>
+        <p>Cada mensaje se transforma en un registro estructurado — como un RPA escribiendo directo en la base de datos única.</p>
       </div>
-      <div class="store-table-wrap">
+      <div class="pipeline-row">
+        <div class="pipe-col sources">
+          <div class="pipe-card"><span class="pipe-ic">👥</span><div><b>Afiliados</b><small>Solicitudes, citas, mensajes</small></div></div>
+          <div class="pipe-card"><span class="pipe-ic">🧑‍💼</span><div><b>Brókers</b><small>Autorizaciones, movimientos</small></div></div>
+          <div class="pipe-card"><span class="pipe-ic">🏥</span><div><b>Prestadores</b><small>Atenciones, facturación</small></div></div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-col">
+          <div class="pipe-box">
+            <b class="pipe-box-title">Procesamiento y limpieza</b>
+            <ul class="pipe-list">
+              <li>⚙️ Estandarización de datos</li>
+              <li>🛡️ Validación de calidad</li>
+              <li>🔗 Enriquecimiento con historial</li>
+            </ul>
+          </div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-col db-col">
+          <img class="pipe-art" src="assets/art-database.png" alt="Base de datos única">
+          <b class="pipe-box-title center">Base de datos única</b>
+          <small class="pipe-sub">Todos los datos, en un solo lugar</small>
+        </div>
+      </div>
+      <div class="store-table-wrap dark-card">
+        <div class="pipe-box-title" style="padding:14px 16px 0;">Escritura en tiempo real</div>
         <table class="store-table" id="storeTable">
           <thead>
             <tr><th>Hora</th><th>Canal</th><th>Mensaje</th><th>Intención detectada</th><th>Estado</th></tr>
@@ -85,54 +133,132 @@
           <tbody id="storeBody"></tbody>
         </table>
       </div>
-      <button class="btn primary" id="btnGoProc" type="button" disabled>Ver procesamiento →</button>
+      <button class="btn primary" id="btnGoProc" type="button" disabled>Ver modelos de Machine Learning →</button>
     </div>
   </section>
 
-  <!-- ===================== PROCESAMIENTO ===================== -->
+  <!-- ===================== PROCESAMIENTO (modelos ML) ===================== -->
   <section class="view" data-view="procesamiento">
-    <div class="view-inner">
-      <div class="view-head">
-        <h2>Procesamiento</h2>
-        <p>El modelo recorre el historial del afiliado y razona igual que lo haría un analista — solo que en milisegundos.</p>
+    <div class="view-inner dark-inner">
+      <div class="view-head dark-head">
+        <h2>Modelos de Machine Learning</h2>
+        <p>El motor recorre el historial del afiliado y razona igual que lo haría un analista — solo que en milisegundos.</p>
       </div>
-      <div class="net-wrap">
-        <div class="net-tag">RED NEURONAL · 34 NODOS · 5 CAPAS</div>
-        <canvas id="netCanvas"></canvas>
+
+      <div class="ml-grid">
+        <div class="pipe-box dark-card">
+          <b class="pipe-box-title">Modelos en producción</b>
+          <ul class="pipe-list">
+            <li>🧠 Redes neuronales <small>(deep learning)</small></li>
+            <li>🌳 Random Forest <small>(clasificación y predicción)</small></li>
+            <li>📈 Regresión <small>(tendencias)</small></li>
+            <li>🔍 Clustering <small>(segmentación)</small></li>
+          </ul>
+          <img class="pipe-art wide" src="assets/art-nn-model.png" alt="Modelo de red neuronal">
+          <small class="pipe-sub">→ Los modelos aprenden, encuentran patrones y se actualizan en tiempo real.</small>
+        </div>
+
+        <div class="pipe-box dark-card net-card">
+          <b class="pipe-box-title">Red neuronal en vivo · 34 nodos · 5 capas</b>
+          <div class="net-wrap dark-inline">
+            <canvas id="netCanvas"></canvas>
+          </div>
+        </div>
       </div>
-      <div class="reasoning-box" id="reasoningBox">
+
+      <div class="pipe-box dark-card" style="margin-top:18px;">
+        <b class="pipe-box-title">Análisis y predicción</b>
+        <div class="analisis-row">
+          <img class="pipe-art" src="assets/art-brain-pipeline.png" alt="Análisis y predicción">
+          <ul class="pipe-list two-col">
+            <li>📊 Comportamiento del afiliado</li>
+            <li>⚠️ Riesgos y alertas tempranas</li>
+            <li>🏥 Demanda de prestadores</li>
+            <li>⭐ Oportunidades de fidelización</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="reasoning-box dark-card" id="reasoningBox">
         <span class="reasoning-ic">🧠</span>
         <div><b>Razonamiento del modelo</b><p id="reasoningText">Analizando…</p></div>
       </div>
-      <button class="btn primary" id="btnGoCliente" type="button" disabled>Enviar a Cliente interno →</button>
+      <button class="btn primary" id="btnGoCliente" type="button" disabled>Ver resultado en Cliente interno →</button>
     </div>
   </section>
 
-  <!-- ===================== CLIENTE INTERNO ===================== -->
+  <!-- ===================== CLIENTE INTERNO (resultado) ===================== -->
   <section class="view" data-view="cliente">
-    <div class="view-inner">
-      <div class="client-card">
+    <div class="view-inner dark-inner">
+      <div class="view-head dark-head">
+        <h2>El resultado</h2>
+        <p>Información que se convierte en acción: una visión completa y predictiva del afiliado.</p>
+      </div>
+
+      <div class="client-card dark-card">
         <div class="client-head">
-          <img class="client-photo" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Foto de María Fernández López" referrerpolicy="no-referrer"
-               onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%230b63ce%27/%3E%3Cstop offset=%271%27 stop-color=%27%231fbad6%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 rx=%2750%27 fill=%27url(%23g)%27/%3E%3Ctext x=%2750%27 y=%2758%27 font-family=%27Arial,sans-serif%27 font-size=%2734%27 font-weight=%27700%27 fill=%27white%27 text-anchor=%27middle%27%3EMF%3C/text%3E%3C/svg%3E'">
+          <img class="client-photo" src="assets/client-photo.png" alt="Foto de María Fernández López">
           <div class="client-id">
             <div class="panel-title">María Fernández López</div>
-            <div class="panel-kicker">Cédula 1102567412 · 45 años · Femenino</div>
-            <div class="id-badges"><span class="status-pill">Activo</span><span class="status-pill plan">Plan Oro</span></div>
+            <div class="panel-kicker">Cédula 1102567412 · 45 años · Femenino · Plan Oro</div>
+            <div class="id-badges"><span class="status-pill">● Activa</span></div>
           </div>
         </div>
+        <div class="client-tabs"><span class="ct active">Resumen</span><span class="ct">Historial</span><span class="ct">Riesgos</span><span class="ct">Recomendaciones</span></div>
         <div class="client-stats">
           <div class="cstat"><span id="statMsgs">0</span><label>Mensajes procesados</label></div>
           <div class="cstat"><span id="statAlerts">0</span><label>Alertas activas</label></div>
           <div class="cstat" id="statRenewalWrap"><span id="statRenewal">Bajo</span><label>Riesgo de no renovación</label></div>
         </div>
-        <div class="alerts-wrap" id="alertsWrap">
-          <div class="alert-card baseline" id="alertBaseline">
-            <span class="alert-ic">✅</span>
-            <div><b>Sin alertas activas</b><p>El perfil está estable. Seguiremos aprendiendo con cada interacción.</p></div>
+      </div>
+
+      <div class="result-grid">
+        <div class="pipe-box dark-card gauge-card">
+          <b class="pipe-box-title">🎯 Predicción de riesgo</b>
+          <div class="gauge-wrap">
+            <div class="gauge" id="riskGauge"><span id="riskGaugeLabel">Bajo</span></div>
+            <div class="gauge-detail">
+              <small>Probabilidad de no renovación</small>
+              <div class="gauge-pct" id="riskPct">12%</div>
+              <small id="riskDelta" class="gauge-delta">↓ vs. promedio del segmento</small>
+            </div>
           </div>
         </div>
+
+        <div class="pipe-box dark-card">
+          <b class="pipe-box-title">⭐ Oportunidades</b>
+          <p class="op-text" id="opText">Recomendación personalizada: recordatorio de control médico y programa de bienestar.</p>
+        </div>
       </div>
+
+      <div class="pipe-box dark-card" style="margin-top:16px;">
+        <b class="pipe-box-title">🧠 Modelo predictivo en acción</b>
+        <div class="predictivo-row">
+          <img class="pipe-art" src="assets/art-brain-predictive.png" alt="IA">
+          <img class="pipe-art wide" src="assets/art-random-forest.png" alt="Random Forest — resultado final: bajo riesgo de no renovación">
+        </div>
+      </div>
+
+      <div class="checklist-row">
+        <div class="pipe-box dark-card">
+          <b class="pipe-box-title">✔️ Tu dato, nuestra ventaja</b>
+          <ul class="check-list">
+            <li>✅ Más prevención</li>
+            <li>✅ Mejores decisiones</li>
+            <li>✅ Mayor eficiencia</li>
+            <li>✅ Más satisfacción</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="alerts-wrap" id="alertsWrap">
+        <div class="alert-card baseline" id="alertBaseline">
+          <span class="alert-ic">✅</span>
+          <div><b>Sin alertas activas</b><p>El perfil está estable. Seguiremos aprendiendo con cada interacción.</p></div>
+        </div>
+      </div>
+
+      <div class="closing-mark"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestro prioridad</small></div></div>
     </div>
   </section>
 

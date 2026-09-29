@@ -84,7 +84,9 @@
     if (b) b.disabled = false;
   }
   tabBtns.forEach((b) => b.addEventListener('click', () => { if (!b.disabled) showView(b.dataset.view); }));
-  document.getElementById('btnOpenChat').addEventListener('click', () => showView('chat'));
+  const btnOpenChat = document.getElementById('btnOpenChat');
+  btnOpenChat.addEventListener('click', () => showView('chat'));
+  btnOpenChat.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView('chat'); } });
   document.getElementById('btnGoProc').addEventListener('click', () => showView('procesamiento'));
   document.getElementById('btnGoCliente').addEventListener('click', () => showView('cliente'));
 
@@ -349,6 +351,11 @@
   const statRenewalWrap = document.getElementById('statRenewalWrap');
   const alertsWrap = document.getElementById('alertsWrap');
   const alertBaseline = document.getElementById('alertBaseline');
+  const riskGauge = document.getElementById('riskGauge');
+  const riskGaugeLabel = document.getElementById('riskGaugeLabel');
+  const riskPctEl = document.getElementById('riskPct');
+  const riskDeltaEl = document.getElementById('riskDelta');
+  const opText = document.getElementById('opText');
 
   function renderClient() {
     statMsgs.textContent = state.messages;
@@ -359,6 +366,25 @@
     statRenewal.textContent = highRisk ? 'Alto' : 'Bajo';
     statRenewalWrap.classList.toggle('risk', highRisk);
     alertBaseline.style.display = count ? 'none' : 'flex';
+
+    const segmentAvg = 20;
+    const pct = highRisk ? 68 : (state.alerts.diabetes ? 22 : 12);
+    if (riskGauge) {
+      riskGauge.style.setProperty('--pct', pct);
+      riskGauge.classList.toggle('risk', highRisk);
+      riskGaugeLabel.textContent = highRisk ? 'Alto' : 'Bajo';
+      riskPctEl.textContent = pct + '%';
+      const delta = pct - segmentAvg;
+      riskDeltaEl.classList.toggle('risk', highRisk);
+      riskDeltaEl.textContent = delta === 0
+        ? 'en línea con el promedio del segmento'
+        : (delta > 0 ? '↑ ' + delta + '% vs. promedio del segmento' : '↓ ' + Math.abs(delta) + '% vs. promedio del segmento');
+    }
+    if (opText) {
+      if (highRisk) opText.textContent = 'Recomendación personalizada: contacto proactivo de un asesor de retención y revisión del plan en las próximas 24h.';
+      else if (state.alerts.diabetes) opText.textContent = 'Recomendación personalizada: programa de control de glucosa, seguimiento nutricional y recordatorio de citas con endocrinología.';
+      else opText.textContent = 'Recomendación personalizada: recordatorio de control médico y programa de bienestar.';
+    }
   }
   function addAlert(a) {
     if (state.alerts[a.key]) return;
