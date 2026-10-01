@@ -432,3 +432,62 @@ main#app{ position:relative; z-index:1; }
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.2s !important; }
 }
+
+/* ================================================================
+   CLIENTE INTERNO — tema claro (coincide con la referencia: solo
+   Almacenamiento/Procesamiento quedan oscuros; el resultado final
+   para el asesor interno es un panel claro, como el portal)
+   ================================================================ */
+.view[data-view="cliente"]{
+  background:
+    radial-gradient(circle at 18% -12%, rgba(31,186,214,0.14), transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(11,99,206,0.10), transparent 45%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-2) 55%, var(--bg-1));
+  border-radius:0; margin:0; width:100%;
+}
+.view[data-view="cliente"] .dark-inner,
+.view[data-view="cliente"] .pipe-list li,
+.view[data-view="cliente"] .pipe-sub,
+.view[data-view="cliente"] p,
+.view[data-view="cliente"] small,
+.view[data-view="cliente"] label{ color:var(--ink-soft); }
+.view[data-view="cliente"] .pipe-box-title,
+.view[data-view="cliente"] .panel-title,
+.view[data-view="cliente"] b,
+.view[data-view="cliente"] h2{ color:var(--ink); }
+.view[data-view="cliente"] .dark-head p{ color:var(--ink-soft); }
+.view[data-view="cliente"] .dark-card{ background:var(--surface-solid); border:1px solid var(--border); box-shadow:var(--shadow); }
+.view[data-view="cliente"] .client-search{ background:#f3f8fd; border-color:var(--border); }
+.view[data-view="cliente"] .client-search input{ color:var(--ink); }
+.view[data-view="cliente"] .client-search input::placeholder{ color:var(--muted); }
+.view[data-view="cliente"] .search-suggestions{ background:var(--surface-solid); border-color:var(--border); box-shadow:var(--shadow); }
+.view[data-view="cliente"] .suggestion-item{ color:var(--ink); }
+.view[data-view="cliente"] .suggestion-item:hover{ background:var(--accent-soft); }
+.view[data-view="cliente"] .suggestion-item small{ color:var(--muted); }
+.view[data-view="cliente"] .client-empty{ color:var(--ink-soft); }
+.view[data-view="cliente"] .client-empty b{ color:var(--ink); }
+.view[data-view="cliente"] .status-pill{ background:rgba(24,138,74,0.12); color:var(--success); border-color:rgba(24,138,74,0.3); }
+.view[data-view="cliente"] .panel-kicker{ color:var(--muted); }
+.view[data-view="cliente"] .cstat{ background:#f7fafd; border-color:var(--border); }
+.view[data-view="cliente"] .cstat span{ color:var(--accent); }
+.view[data-view="cliente"] .cstat label{ color:var(--muted); }
+.view[data-view="cliente"] #statRenewalWrap.risk span{ color:var(--danger); }
+.view[data-view="cliente"] .client-tabs{ border-bottom-color:var(--border); }
+.view[data-view="cliente"] .ct{ color:var(--muted); }
+.view[data-view="cliente"] .ct.active{ color:var(--ink); border-bottom-color:var(--accent); }
+.view[data-view="cliente"] .gauge{ background:conic-gradient(var(--accent-2) calc(var(--pct)*1%), #e7eef6 0); }
+.view[data-view="cliente"] .gauge::before{ background:var(--surface-solid); }
+.view[data-view="cliente"] .gauge span{ color:var(--ink); }
+.view[data-view="cliente"] .gauge.risk{ background:conic-gradient(var(--danger) calc(var(--pct)*1%), #e7eef6 0); }
+.view[data-view="cliente"] .gauge-pct{ color:var(--ink); }
+.view[data-view="cliente"] .gauge-delta{ color:var(--success); }
+.view[data-view="cliente"] .gauge-delta.risk{ color:var(--danger); }
+.view[data-view="cliente"] .alert-card{ background:#f7fafd; border-color:var(--border); color:var(--ink-soft); }
+.view[data-view="cliente"] .alert-card.baseline{ background:rgba(24,138,74,0.08); border-color:rgba(24,138,74,0.25); }
+.view[data-view="cliente"] .alert-card.warn{ background:rgba(194,52,52,0.07); border-color:rgba(194,52,52,0.25); }
+.view[data-view="cliente"] .alert-card p, .view[data-view="cliente"] .alert-card li{ color:var(--ink-soft); }
+.view[data-view="cliente"] .strategy-list{ border-top-color:var(--border); }
+.view[data-view="cliente"] .strategy-list li::before{ color:var(--accent); }
+.view[data-view="cliente"] .closing-mark small{ color:var(--muted); }
+.view[data-view="cliente"] .closing-mark b{ color:var(--ink); }
+.view[data-view="cliente"] .forest-svg text{ fill:var(--ink-soft); }
