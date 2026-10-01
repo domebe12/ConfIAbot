@@ -140,17 +140,73 @@
     const r = Math.round(24 + (255 - 24) * p), g = Math.round(168 - (168 - 60) * p), b = Math.round(150 - 110 * p);
     return `rgb(${r},${g},${b})`;
   }
+  // Dibuja una celda de árbol (curvas + nodos). hero=true => grande, brillante,
+  // con texto final; hero=false => miniatura tenue (un árbol más del bosque real).
+  function treeCellParts(out, y0, cellH, hero) {
+    const rowH = cellH / (out.maxDepth + 1);
+    const py = (d) => y0 + d * rowH;
+    const parts = [];
+    out.edges.forEach((e) => {
+      const y1 = py(e.y1), y2 = py(e.y2), midY = (y1 + y2) / 2;
+      const d = `M${e.x1},${y1} C${e.x1},${midY} ${e.x2},${midY} ${e.x2},${y2}`;
+      if (hero) {
+        const len = Math.hypot(e.x2 - e.x1, y2 - y1) * 1.25 + 10;
+        const delay = (e.y1 * 0.16).toFixed(2);
+        if (e.onPath) parts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="#3fd6f0" stroke-width="2.6" stroke-linecap="round" filter="url(#treeGlow)" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+        else parts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="rgba(135,180,220,0.22)" stroke-width="1" stroke-linecap="round" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+      } else {
+        parts.push(`<path d="${d}" fill="none" stroke="${e.onPath ? 'rgba(63,214,240,0.55)' : 'rgba(135,180,220,0.16)'}" stroke-width="${e.onPath ? 1.2 : 0.7}" stroke-linecap="round"/>`);
+      }
+    });
+    out.nodes.forEach((n) => {
+      const isLeaf = 'leaf' in n.node;
+      const cy = py(n.y);
+      if (hero) {
+        const delay = (n.y * 0.16 + 0.06).toFixed(2);
+        if (isLeaf) {
+          if (n.onPath) {
+            const r = 9 + n.node.leaf * 5;
+            parts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${r}" fill="${leafColor(n.node.leaf)}" filter="url(#treeGlow)" style="animation-delay:${delay}s"/>`);
+            parts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${Math.max(2.5, r - 4)}" fill="#fff" opacity="0.9" style="animation-delay:${delay}s"/>`);
+          } else parts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="3.5" fill="rgba(135,180,220,0.3)" style="animation-delay:${delay}s"/>`);
+        } else if (n.onPath) parts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="7" fill="url(#nodeGlowOn)" filter="url(#treeGlow)" style="animation-delay:${delay}s"/>`);
+        else parts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="4" fill="rgba(135,180,220,0.4)" style="animation-delay:${delay}s"/>`);
+      } else {
+        const r = n.onPath ? (isLeaf ? 2.6 : 2.1) : 1.3;
+        const fill = n.onPath ? (isLeaf ? leafColor(n.node.leaf) : '#5fe3f7') : 'rgba(135,180,220,0.35)';
+        parts.push(`<circle cx="${n.x}" cy="${cy}" r="${r}" fill="${fill}"/>`);
+      }
+    });
+    return { parts, py };
+  }
+  // Reconstruye, como un único trazo, el camino raíz→hoja realmente tomado
+  // (mismas curvas que ya se dibujaron) para animar un punto viajando sobre él.
+  function heroMotionPath(out, py) {
+    let current = out.nodes[0];
+    let d = `M${current.x},${py(current.y)}`;
+    for (;;) {
+      const edge = out.edges.find((e) => e.onPath && e.y1 === current.y && Math.abs(e.x1 - current.x) < 0.01);
+      if (!edge) break;
+      const y1 = py(edge.y1), y2 = py(edge.y2), midY = (y1 + y2) / 2;
+      d += ` C${edge.x1},${midY} ${edge.x2},${midY} ${edge.x2},${y2}`;
+      const next = out.nodes.find((n) => n.y === edge.y2 && Math.abs(n.x - edge.x2) < 0.01);
+      if (!next) break;
+      current = next;
+    }
+    return d;
+  }
   function renderForestSVG(model, feat, treeIdx) {
     const svg = document.getElementById('forestSvg');
     const caption = document.getElementById('forestCaption');
     if (!svg || !model) return;
-    const tree = model.rf.trees[treeIdx % model.rf.trees.length];
-    const out = { nodes: [], edges: [], maxDepth: 0 };
-    layoutTree(tree, feat, 0, 20, 280, true, out);
-    const rowH = 150 / (out.maxDepth + 1);
-    const py = (d) => 20 + d * rowH;
-    let svgParts = [];
-    svgParts.push(`<defs>
+    const trees = model.rf.trees;
+    const heroIdx = treeIdx % trees.length;
+    const cols = 4, cellW = 240, cellH = 150;
+    const rows = Math.ceil(trees.length / cols);
+    const vbW = cols * cellW, vbH = rows * cellH;
+    svg.setAttribute('viewBox', `0 0 ${vbW} ${vbH}`);
+
+    const parts = [`<defs>
       <filter id="treeGlow" x="-120%" y="-120%" width="340%" height="340%">
         <feGaussianBlur stdDeviation="3.2" result="b"/>
         <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
@@ -160,53 +216,81 @@
         <stop offset="45%" stop-color="#5fe3f7"/>
         <stop offset="100%" stop-color="#0c87ad"/>
       </radialGradient>
-    </defs>`);
-    // ramas como curvas suaves (estilo red neuronal), no líneas técnicas rectas
-    out.edges.forEach((e) => {
-      const y1 = py(e.y1), y2 = py(e.y2), midY = (y1 + y2) / 2;
-      const d = `M${e.x1},${y1} C${e.x1},${midY} ${e.x2},${midY} ${e.x2},${y2}`;
-      const len = Math.hypot(e.x2 - e.x1, y2 - y1) * 1.25 + 10;
-      const delay = (e.y1 * 0.2).toFixed(2);
-      if (e.onPath) {
-        svgParts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="#3fd6f0" stroke-width="2.2" stroke-linecap="round" filter="url(#treeGlow)" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+    </defs>`, '<g id="forestGroup">'];
+
+    let heroOut = null, heroPy = null, heroCx = 0, heroCy = 0;
+    trees.forEach((tree, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x0 = col * cellW + 14, x1 = (col + 1) * cellW - 14;
+      const y0 = row * cellH + 16;
+      const out = { nodes: [], edges: [], maxDepth: 0 };
+      layoutTree(tree, feat, 0, x0, x1, true, out);
+      const isHero = i === heroIdx;
+      const { parts: cellParts, py } = treeCellParts(out, y0, cellH - 32, isHero);
+      if (isHero) {
+        heroOut = out; heroPy = py;
+        heroCx = col * cellW + cellW / 2; heroCy = row * cellH + cellH / 2;
+        parts.push('<g id="heroTree">' + cellParts.join('') + '</g>');
       } else {
-        svgParts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="rgba(135,180,220,0.22)" stroke-width="1" stroke-linecap="round" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+        parts.push('<g class="other-tree">' + cellParts.join('') + '</g>');
       }
     });
-    // nodos como "neuronas" brillantes, sin texto técnico encima
-    out.nodes.forEach((n) => {
-      const isLeaf = 'leaf' in n.node;
-      const cy = py(n.y);
-      const delay = (n.y * 0.2 + 0.08).toFixed(2);
-      if (isLeaf) {
-        if (n.onPath) {
-          const r = 9 + n.node.leaf * 5;
-          svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${r}" fill="${leafColor(n.node.leaf)}" filter="url(#treeGlow)" style="animation-delay:${delay}s"/>`);
-          svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${Math.max(2.5, r - 4)}" fill="#fff" opacity="0.9" style="animation-delay:${delay}s"/>`);
-        } else {
-          svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="3.5" fill="rgba(135,180,220,0.3)" style="animation-delay:${delay}s"/>`);
-        }
-      } else if (n.onPath) {
-        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="7" fill="url(#nodeGlowOn)" filter="url(#treeGlow)" style="animation-delay:${delay}s"/>`);
-      } else {
-        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="4" fill="rgba(135,180,220,0.4)" style="animation-delay:${delay}s"/>`);
-      }
-    });
-    // único texto visible: el resultado final, como insight, no como diagrama técnico
-    const leafPathNode = out.nodes.find((n) => n.onPath && 'leaf' in n.node);
+    parts.push('</g>');
+
+    // texto final: solo el resultado, junto al nodo-hoja resaltado del árbol hero
+    const leafPathNode = heroOut.nodes.find((n) => n.onPath && 'leaf' in n.node);
     if (leafPathNode) {
-      const cy = py(leafPathNode.y);
+      const cy = heroPy(leafPathNode.y);
       const r = 9 + leafPathNode.node.leaf * 5;
-      const delay = (leafPathNode.y * 0.2 + 0.35).toFixed(2);
-      const onRight = leafPathNode.x <= 220;
+      const delay = (leafPathNode.y * 0.16 + 0.3).toFixed(2);
+      const onRight = leafPathNode.x <= heroCx + 20;
       const lx = onRight ? leafPathNode.x + r + 8 : leafPathNode.x - r - 8;
       const anchor = onRight ? 'start' : 'end';
-      svgParts.push(`<text class="leaf-label" x="${lx}" y="${cy + 4}" font-size="13" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle" fill="#eafeff" style="animation-delay:${delay}s">${Math.round(leafPathNode.node.leaf * 100)}%</text>`);
+      parts.push(`<text class="leaf-label" x="${lx}" y="${cy + 4}" font-size="13" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle" fill="#eafeff" style="animation-delay:${delay}s">${Math.round(leafPathNode.node.leaf * 100)}%</text>`);
     }
-    svg.innerHTML = svgParts.join('');
+
+    svg.innerHTML = parts.join('');
+
+    // --- Coreografía: zoom al camino tomado -> punto viajando -> zoom out al bosque completo ---
+    const group = svg.querySelector('#forestGroup');
+    const scaleFactor = Math.min(3.2, Math.max(1.8, Math.min(vbW / cellW, vbH / cellH) * 0.82));
+    const tx = vbW / 2 - scaleFactor * heroCx, ty = vbH / 2 - scaleFactor * heroCy;
+    svg.classList.remove('zoomed-out');
+    group.style.transition = 'none';
+    group.style.transform = `translate(${tx}px,${ty}px) scale(${scaleFactor})`;
+    void group.getBoundingClientRect();
+    group.style.transition = 'transform 1.3s cubic-bezier(.3,.7,.15,1)';
+
+    const motionD = heroMotionPath(heroOut, heroPy);
+    const motionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    motionPath.setAttribute('d', motionD);
+    motionPath.setAttribute('fill', 'none');
+    motionPath.setAttribute('stroke', 'none');
+    const heroG = svg.querySelector('#heroTree');
+    heroG.appendChild(motionPath);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('r', '6'); dot.setAttribute('class', 'flow-packet');
+    heroG.appendChild(dot);
+    const totalLen = motionPath.getTotalLength();
+    const dur = 1100, start = performance.now();
+    function tick(t) {
+      const p = Math.min(1, (t - start) / dur);
+      const pt = motionPath.getPointAtLength(p * totalLen);
+      dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+      if (p >= 1) dot.style.opacity = '0';
+      else requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    clearTimeout(svg._zoomTimer);
+    svg._zoomTimer = setTimeout(() => {
+      group.style.transform = 'translate(0px,0px) scale(1)';
+      svg.classList.add('zoomed-out');
+    }, dur + 500);
+
     if (caption) {
       const label = model === (MODELS && MODELS.diabetes) ? 'riesgo de diabetes tipo 2' : 'riesgo de no renovación';
-      caption.textContent = '→ Random Forest — árbol #' + (treeIdx + 1) + ' del modelo real (' + label + '), camino de decisión resaltado';
+      caption.textContent = '→ Random Forest real (' + trees.length + ' árboles) — se resalta el camino que tomó el árbol #' + (heroIdx + 1) + ' para ' + label + '; luego se aleja la vista para ver el resto del bosque votando.';
     }
   }
   function computeRisk() {

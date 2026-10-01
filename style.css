@@ -400,11 +400,15 @@ main#app{ position:relative; z-index:1; }
 .gauge-delta.risk{ color:#ff8a8a; }
 .op-text{ font-size:12.5px; line-height:1.55; }
 
-.predictivo-row{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-.predictivo-row .pipe-art{ margin:0; flex:none; }
-.forest-wrap{ flex:1; min-width:240px; }
-.forest-svg{ width:100%; height:auto; display:block; margin-top:6px; }
+.predictivo-row{ display:flex; flex-direction:column; align-items:stretch; gap:14px; }
+.predictivo-row .pipe-art{ margin:0 auto; flex:none; width:72px; }
+.forest-wrap{ width:100%; }
+.forest-svg{ width:100%; height:auto; display:block; margin-top:6px; overflow:visible; background:#0a1d33; border-radius:14px; }
 .forest-svg .leaf-label{ font-weight:700; }
+#forestGroup{ transition:transform 1.3s cubic-bezier(.3,.7,.15,1); transform-origin:0px 0px; transform-box:view-box; }
+.forest-svg .other-tree{ opacity:0; transition:opacity 1.1s ease .1s; }
+.forest-svg.zoomed-out .other-tree{ opacity:1; }
+.flow-packet{ fill:#ffffff; filter:drop-shadow(0 0 7px rgba(255,255,255,0.95)) drop-shadow(0 0 14px rgba(63,214,240,0.9)); transition:opacity .25s ease; }
 
 .checklist-row{ margin-top:16px; }
 .check-list{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
@@ -577,4 +581,6 @@ main#app{ position:relative; z-index:1; }
 .view[data-view="cliente"] .strategy-list li::before{ color:var(--accent); }
 .view[data-view="cliente"] .closing-mark small{ color:var(--muted); }
 .view[data-view="cliente"] .closing-mark b{ color:var(--ink); }
-.view[data-view="cliente"] .forest-svg text{ fill:var(--ink-soft); }
+/* el panel del árbol se queda oscuro/neón aunque Cliente interno sea claro,
+   como una "ventana" al modelo (mismo criterio de la referencia) */
+.view[data-view="cliente"] .pipe-sub.model-meta{ color:var(--muted); }
