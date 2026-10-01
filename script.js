@@ -151,20 +151,23 @@
     const py = (d) => 26 + d * rowH;
     let svgParts = [];
     out.edges.forEach((e) => {
-      svgParts.push(`<line x1="${e.x1}" y1="${py(e.y1)}" x2="${e.x2}" y2="${py(e.y2)}" stroke="${e.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.14)'}" stroke-width="${e.onPath ? 2.4 : 1.2}"/>`);
+      const len = Math.hypot(e.x2 - e.x1, py(e.y2) - py(e.y1)) || 1;
+      const delay = (e.y1 * 0.22).toFixed(2);
+      svgParts.push(`<line class="tree-edge" x1="${e.x1}" y1="${py(e.y1)}" x2="${e.x2}" y2="${py(e.y2)}" stroke="${e.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.14)'}" stroke-width="${e.onPath ? 2.4 : 1.2}" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
     });
     out.nodes.forEach((n) => {
       const isLeaf = 'leaf' in n.node;
       const cy = py(n.y);
+      const delay = (n.y * 0.22 + 0.1).toFixed(2);
       if (isLeaf) {
         const fill = n.onPath ? leafColor(n.node.leaf) : 'rgba(255,255,255,0.28)';
         const r = n.onPath ? 8 : 5;
-        svgParts.push(`<circle cx="${n.x}" cy="${cy}" r="${r}" fill="${fill}" stroke="${n.onPath ? '#fff' : 'none'}" stroke-width="1.2"/>`);
-        if (n.onPath) svgParts.push(`<text class="leaf-label" x="${n.x}" y="${cy + 20}" font-size="9" text-anchor="middle" fill="#fff">${Math.round(n.node.leaf * 100)}%</text>`);
+        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${r}" fill="${fill}" stroke="${n.onPath ? '#fff' : 'none'}" stroke-width="1.2" style="animation-delay:${delay}s"/>`);
+        if (n.onPath) svgParts.push(`<text class="leaf-label" x="${n.x}" y="${cy + 20}" font-size="9" text-anchor="middle" fill="#fff" style="animation-delay:${delay}s">${Math.round(n.node.leaf * 100)}%</text>`);
       } else {
         const fill = n.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.5)';
-        svgParts.push(`<circle cx="${n.x}" cy="${cy}" r="${n.onPath ? 5.5 : 3.5}" fill="${fill}"/>`);
-        if (n.onPath) svgParts.push(`<text x="${n.x}" y="${cy - 9}" font-size="7.5" text-anchor="middle">${FEATURE_SHORT[n.node.f] || n.node.f} ≤ ${n.node.th.toFixed(1)}</text>`);
+        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${n.onPath ? 5.5 : 3.5}" fill="${fill}" style="animation-delay:${delay}s"/>`);
+        if (n.onPath) svgParts.push(`<text x="${n.x}" y="${cy - 9}" font-size="7.5" text-anchor="middle" style="animation-delay:${delay}s">${FEATURE_SHORT[n.node.f] || n.node.f} ≤ ${n.node.th.toFixed(1)}</text>`);
       }
     });
     svg.innerHTML = svgParts.join('');
@@ -582,6 +585,19 @@
   const riskGaugeLabel = document.getElementById('riskGaugeLabel');
   const riskPctEl = document.getElementById('riskPct');
   const riskDeltaEl = document.getElementById('riskDelta');
+  function animateCount(el, to, suffix) {
+    suffix = suffix || '';
+    const from = parseInt(el.dataset.count || '0', 10) || 0;
+    el.dataset.count = to;
+    const start = performance.now(), dur = 650;
+    function tick(t) {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (to - from) * eased) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
   const opText = document.getElementById('opText');
 
   const DIAB_PLAN = ['Agendar control con endocrinología', 'Enviar material educativo sobre alimentación', 'Activar seguimiento trimestral de glucosa'];
@@ -589,7 +605,7 @@
   const DEFAULT_PLAN = ['Continuar monitoreo estándar', 'Enviar recordatorio de bienestar preventivo'];
 
   function renderClient() {
-    statMsgs.textContent = state.messages;
+    animateCount(statMsgs, state.messages);
     const risk = state.risk || fallbackRisk();
 
     if (risk.diab.high) {
@@ -614,7 +630,7 @@
       strategyList.innerHTML = (items.length ? items : DEFAULT_PLAN).map((p) => '<li>' + p + '</li>').join('');
     }
     const count = Object.keys(state.alerts).length;
-    statAlerts.textContent = count;
+    animateCount(statAlerts, count);
     statRenewal.textContent = risk.renov.high ? 'Alto' : 'Bajo';
     statRenewalWrap.classList.toggle('risk', risk.renov.high);
     alertBaseline.style.display = count ? 'none' : 'flex';
@@ -625,7 +641,7 @@
       riskGauge.style.setProperty('--pct', pct);
       riskGauge.classList.toggle('risk', risk.renov.high);
       riskGaugeLabel.textContent = risk.renov.high ? 'Alto' : 'Bajo';
-      riskPctEl.textContent = pct + '%';
+      animateCount(riskPctEl, pct, '%');
       const delta = pct - segmentAvgPct;
       riskDeltaEl.classList.toggle('risk', risk.renov.high);
       riskDeltaEl.textContent = (delta === 0

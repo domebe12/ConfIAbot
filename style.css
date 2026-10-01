@@ -429,6 +429,94 @@ main#app{ position:relative; z-index:1; }
   .check-list{ grid-template-columns:1fr; }
 }
 
+/* ================================================================
+   MOTION PASS — la app debe sentirse viva, no una captura estática:
+   fondos con aurora en movimiento, tarjetas que entran en cascada,
+   flujo de datos constante, íconos que respiran, árbol que se dibuja.
+   ================================================================ */
+
+/* Aurora de fondo en movimiento (paneles oscuros y portal) */
+.view[data-view="almacenamiento"], .view[data-view="procesamiento"]{
+  background-size:180% 180%, 180% 180%, 100% 100%;
+  animation:auroraDrift 18s ease-in-out infinite alternate;
+}
+@keyframes auroraDrift{
+  0%{ background-position:10% 0%, 90% 10%, 0 0; }
+  100%{ background-position:30% 30%, 70% 40%, 0 0; }
+}
+.portal-mock{ position:relative; isolation:isolate; }
+.portal-mock::before{
+  content:''; position:absolute; inset:-40%; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(31,186,214,0.20), transparent 38%),
+    radial-gradient(circle at 85% 75%, rgba(11,99,206,0.16), transparent 42%);
+  animation:auroraDrift 16s ease-in-out infinite alternate;
+  background-size:200% 200%, 200% 200%;
+}
+
+/* Entrada en cascada de tarjetas cada vez que se abre una vista */
+@keyframes cardPopIn{ from{ opacity:0; transform:translateY(14px) scale(.97); } to{ opacity:1; transform:translateY(0) scale(1); } }
+.portal-quickstats .qstat, .portal-cards .portal-card,
+.pipeline-row .pipe-card, .pipe-col.sources .pipe-card,
+.ml-grid > *, .result-grid > *, .checklist-row > *,
+.client-quickstats .qstat{
+  animation:cardPopIn .55s cubic-bezier(.2,.8,.2,1) backwards;
+}
+.portal-quickstats .qstat:nth-child(1), .portal-cards .portal-card:nth-child(1), .pipe-card:nth-child(1), .result-grid > *:nth-child(1), .checklist-row > *:nth-child(1){ animation-delay:.04s; }
+.portal-quickstats .qstat:nth-child(2), .portal-cards .portal-card:nth-child(2), .pipe-card:nth-child(2), .result-grid > *:nth-child(2), .checklist-row > *:nth-child(2){ animation-delay:.12s; }
+.portal-quickstats .qstat:nth-child(3), .portal-cards .portal-card:nth-child(3), .pipe-card:nth-child(3){ animation-delay:.2s; }
+.portal-cards .portal-card:nth-child(4){ animation-delay:.28s; }
+.ml-grid > *:nth-child(1){ animation-delay:.06s; } .ml-grid > *:nth-child(2){ animation-delay:.18s; }
+
+/* Tarjetas con elevación + brillo al pasar el mouse (más "vivas" que un simple translateY) */
+.portal-card, .dark-card, .qstat, .cstat{ transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, border-color .25s ease; }
+.portal-card:hover{ transform:translateY(-4px) scale(1.015); box-shadow:0 18px 34px -16px rgba(11,37,69,0.35); }
+.dark-card:hover{ transform:translateY(-3px); box-shadow:0 34px 64px -28px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06); }
+
+/* Brillo recorriendo la tarjeta destacada de ConfIAbot */
+.portal-card.highlight{ position:relative; overflow:hidden; }
+.portal-card.highlight::after{
+  content:''; position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation:cardSheen 3.2s ease-in-out infinite;
+}
+@keyframes cardSheen{ 0%{ left:-60%; } 55%{ left:120%; } 100%{ left:120%; } }
+
+/* Ícono de base de datos: respiración constante + flujo de datos en todas las flechas */
+#dbArt, .flow-ic{ animation:dbBreathe 3.4s ease-in-out infinite; }
+@keyframes dbBreathe{
+  0%,100%{ filter:drop-shadow(0 0 0 rgba(63,214,240,0)); transform:scale(1); }
+  50%{ filter:drop-shadow(0 0 14px rgba(63,214,240,0.55)); transform:scale(1.035); }
+}
+.db-col.db-pulse #dbArt{ animation:dbGlow 1.1s ease; }
+
+.pipe-arrow{ position:relative; overflow:visible; }
+.pipe-arrow::after{
+  content:''; position:absolute; top:50%; left:50%; width:5px; height:5px; margin:-2.5px 0 0 -2.5px;
+  border-radius:50%; background:#3fd6f0; box-shadow:0 0 8px 2px rgba(63,214,240,0.85);
+  animation:pipeArrowDot 2.4s linear infinite;
+}
+@keyframes pipeArrowDot{
+  0%{ transform:translateX(-14px) scale(.6); opacity:0; }
+  15%{ opacity:1; } 85%{ opacity:1; }
+  100%{ transform:translateX(14px) scale(1); opacity:0; }
+}
+@media (max-width:900px){ .pipe-arrow::after{ animation:none; display:none; } }
+
+/* Cerebro/IA con resplandor pulsante continuo */
+.pipe-art:not(#dbArt):not(.flow-ic){ animation:artGlow 3.8s ease-in-out infinite; }
+@keyframes artGlow{
+  0%,100%{ filter:drop-shadow(0 0 0 rgba(63,214,240,0)) brightness(1); }
+  50%{ filter:drop-shadow(0 0 16px rgba(63,214,240,0.45)) brightness(1.08); }
+}
+
+/* Árbol de decisión (Random Forest): se dibuja en vivo en vez de aparecer de golpe */
+.forest-svg line.tree-edge{ stroke-dasharray:220; stroke-dashoffset:220; animation:treeDraw .7s ease forwards; }
+@keyframes treeDraw{ to{ stroke-dashoffset:0; } }
+.forest-svg circle.tree-node{ opacity:0; transform-origin:center; animation:nodePop .4s ease forwards; }
+@keyframes nodePop{ from{ opacity:0; transform:scale(.3); } to{ opacity:1; transform:scale(1); } }
+.forest-svg text{ opacity:0; animation:nodePop .4s ease forwards; animation-delay:.3s; }
+
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.2s !important; }
 }
