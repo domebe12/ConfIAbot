@@ -331,15 +331,15 @@ main#app{ position:relative; z-index:1; }
 #btnGuardar{ margin-bottom:12px; }
 #btnGuardar:disabled{ opacity:.35; }
 
-.flow-bar{ display:flex; align-items:center; gap:14px; padding:14px 18px; border-radius:16px; margin-bottom:16px; }
-.flow-node{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#f2f8ff; flex:none; white-space:nowrap; }
-.flow-ic{ width:26px; height:26px; object-fit:cover; border-radius:50%; flex:none; }
-.flow-ic-emoji{ font-size:18px; }
-.flow-line{ position:relative; flex:1; height:2px; background:rgba(114,190,230,0.2); min-width:60px; border-radius:2px; }
-.flow-dot{ position:absolute; top:50%; left:0; width:7px; height:7px; margin-top:-3.5px; border-radius:50%; background:#3fd6f0; box-shadow:0 0 8px 2px rgba(63,214,240,0.8);
-  animation:flowMove 1.8s var(--d,0s) linear infinite; opacity:0; }
-@keyframes flowMove{ 0%{ left:0%; opacity:0; } 8%{ opacity:1; } 92%{ opacity:1; } 100%{ left:100%; opacity:0; } }
-@media (max-width:640px){ .flow-bar{ flex-wrap:wrap; justify-content:center; } .flow-line{ min-width:100%; order:3; } }
+/* Hub: base de datos -> (red neuronal / árbol / red neuronal), como la referencia */
+.ml-hub{ padding:18px; border-radius:16px; margin-bottom:16px; }
+.hub-svg{ width:100%; height:auto; display:block; overflow:visible; }
+.hub-link{ fill:none; stroke:rgba(135,180,220,0.35); stroke-width:1.4; }
+.hub-dot{ fill:#3fd6f0; filter:drop-shadow(0 0 5px rgba(63,214,240,0.9));
+  offset-rotate:0deg; animation:hubFlow 2.4s linear infinite; opacity:0; }
+@keyframes hubFlow{ 0%{ offset-distance:0%; opacity:0; } 8%{ opacity:1; } 90%{ opacity:1; } 100%{ offset-distance:100%; opacity:0; } }
+.hub-mini-tree circle{ animation:dbBreathe 3.4s ease-in-out infinite; }
+@media (max-width:640px){ .ml-hub{ padding:12px; } }
 
 .ml-grid{ display:grid; grid-template-columns:1fr 1.15fr; gap:16px; align-items:stretch; min-width:0; }
 .ml-grid > *{ min-width:0; }
