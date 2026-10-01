@@ -146,30 +146,63 @@
     if (!svg || !model) return;
     const tree = model.rf.trees[treeIdx % model.rf.trees.length];
     const out = { nodes: [], edges: [], maxDepth: 0 };
-    layoutTree(tree, feat, 0, 8, 292, true, out);
-    const rowH = 145 / (out.maxDepth + 1);
-    const py = (d) => 26 + d * rowH;
+    layoutTree(tree, feat, 0, 20, 280, true, out);
+    const rowH = 150 / (out.maxDepth + 1);
+    const py = (d) => 20 + d * rowH;
     let svgParts = [];
+    svgParts.push(`<defs>
+      <filter id="treeGlow" x="-120%" y="-120%" width="340%" height="340%">
+        <feGaussianBlur stdDeviation="3.2" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <radialGradient id="nodeGlowOn" cx="40%" cy="35%" r="65%">
+        <stop offset="0%" stop-color="#eafeff"/>
+        <stop offset="45%" stop-color="#5fe3f7"/>
+        <stop offset="100%" stop-color="#0c87ad"/>
+      </radialGradient>
+    </defs>`);
+    // ramas como curvas suaves (estilo red neuronal), no líneas técnicas rectas
     out.edges.forEach((e) => {
-      const len = Math.hypot(e.x2 - e.x1, py(e.y2) - py(e.y1)) || 1;
-      const delay = (e.y1 * 0.22).toFixed(2);
-      svgParts.push(`<line class="tree-edge" x1="${e.x1}" y1="${py(e.y1)}" x2="${e.x2}" y2="${py(e.y2)}" stroke="${e.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.14)'}" stroke-width="${e.onPath ? 2.4 : 1.2}" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+      const y1 = py(e.y1), y2 = py(e.y2), midY = (y1 + y2) / 2;
+      const d = `M${e.x1},${y1} C${e.x1},${midY} ${e.x2},${midY} ${e.x2},${y2}`;
+      const len = Math.hypot(e.x2 - e.x1, y2 - y1) * 1.25 + 10;
+      const delay = (e.y1 * 0.2).toFixed(2);
+      if (e.onPath) {
+        svgParts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="#3fd6f0" stroke-width="2.2" stroke-linecap="round" filter="url(#treeGlow)" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+      } else {
+        svgParts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="rgba(135,180,220,0.22)" stroke-width="1" stroke-linecap="round" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+      }
     });
+    // nodos como "neuronas" brillantes, sin texto técnico encima
     out.nodes.forEach((n) => {
       const isLeaf = 'leaf' in n.node;
       const cy = py(n.y);
-      const delay = (n.y * 0.22 + 0.1).toFixed(2);
+      const delay = (n.y * 0.2 + 0.08).toFixed(2);
       if (isLeaf) {
-        const fill = n.onPath ? leafColor(n.node.leaf) : 'rgba(255,255,255,0.28)';
-        const r = n.onPath ? 8 : 5;
-        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${r}" fill="${fill}" stroke="${n.onPath ? '#fff' : 'none'}" stroke-width="1.2" style="animation-delay:${delay}s"/>`);
-        if (n.onPath) svgParts.push(`<text class="leaf-label" x="${n.x}" y="${cy + 20}" font-size="9" text-anchor="middle" fill="#fff" style="animation-delay:${delay}s">${Math.round(n.node.leaf * 100)}%</text>`);
+        if (n.onPath) {
+          const r = 9 + n.node.leaf * 5;
+          svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${r}" fill="${leafColor(n.node.leaf)}" filter="url(#treeGlow)" style="animation-delay:${delay}s"/>`);
+          svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${Math.max(2.5, r - 4)}" fill="#fff" opacity="0.9" style="animation-delay:${delay}s"/>`);
+        } else {
+          svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="3.5" fill="rgba(135,180,220,0.3)" style="animation-delay:${delay}s"/>`);
+        }
+      } else if (n.onPath) {
+        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="7" fill="url(#nodeGlowOn)" filter="url(#treeGlow)" style="animation-delay:${delay}s"/>`);
       } else {
-        const fill = n.onPath ? '#3fd6f0' : 'rgba(255,255,255,0.5)';
-        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="${n.onPath ? 5.5 : 3.5}" fill="${fill}" style="animation-delay:${delay}s"/>`);
-        if (n.onPath) svgParts.push(`<text x="${n.x}" y="${cy - 9}" font-size="7.5" text-anchor="middle" style="animation-delay:${delay}s">${FEATURE_SHORT[n.node.f] || n.node.f} ≤ ${n.node.th.toFixed(1)}</text>`);
+        svgParts.push(`<circle class="tree-node" cx="${n.x}" cy="${cy}" r="4" fill="rgba(135,180,220,0.4)" style="animation-delay:${delay}s"/>`);
       }
     });
+    // único texto visible: el resultado final, como insight, no como diagrama técnico
+    const leafPathNode = out.nodes.find((n) => n.onPath && 'leaf' in n.node);
+    if (leafPathNode) {
+      const cy = py(leafPathNode.y);
+      const r = 9 + leafPathNode.node.leaf * 5;
+      const delay = (leafPathNode.y * 0.2 + 0.35).toFixed(2);
+      const onRight = leafPathNode.x <= 220;
+      const lx = onRight ? leafPathNode.x + r + 8 : leafPathNode.x - r - 8;
+      const anchor = onRight ? 'start' : 'end';
+      svgParts.push(`<text class="leaf-label" x="${lx}" y="${cy + 4}" font-size="13" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle" fill="#eafeff" style="animation-delay:${delay}s">${Math.round(leafPathNode.node.leaf * 100)}%</text>`);
+    }
     svg.innerHTML = svgParts.join('');
     if (caption) {
       const label = model === (MODELS && MODELS.diabetes) ? 'riesgo de diabetes tipo 2' : 'riesgo de no renovación';

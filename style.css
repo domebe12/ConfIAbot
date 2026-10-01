@@ -404,7 +404,6 @@ main#app{ position:relative; z-index:1; }
 .predictivo-row .pipe-art{ margin:0; flex:none; }
 .forest-wrap{ flex:1; min-width:240px; }
 .forest-svg{ width:100%; height:auto; display:block; margin-top:6px; }
-.forest-svg text{ font-family:var(--font-mono); fill:#9fc0dd; }
 .forest-svg .leaf-label{ font-weight:700; }
 
 .checklist-row{ margin-top:16px; }
@@ -510,12 +509,12 @@ main#app{ position:relative; z-index:1; }
   50%{ filter:drop-shadow(0 0 16px rgba(63,214,240,0.45)) brightness(1.08); }
 }
 
-/* Árbol de decisión (Random Forest): se dibuja en vivo en vez de aparecer de golpe */
-.forest-svg line.tree-edge{ stroke-dasharray:220; stroke-dashoffset:220; animation:treeDraw .7s ease forwards; }
+/* Árbol de decisión (Random Forest): visual tipo red neuronal, se dibuja en vivo */
+.forest-svg path.tree-edge{ stroke-dasharray:220; stroke-dashoffset:220; animation:treeDraw .8s ease forwards; }
 @keyframes treeDraw{ to{ stroke-dashoffset:0; } }
-.forest-svg circle.tree-node{ opacity:0; transform-origin:center; animation:nodePop .4s ease forwards; }
+.forest-svg circle.tree-node{ opacity:0; transform-origin:center; animation:nodePop .5s cubic-bezier(.2,.8,.2,1.4) forwards; }
 @keyframes nodePop{ from{ opacity:0; transform:scale(.3); } to{ opacity:1; transform:scale(1); } }
-.forest-svg text{ opacity:0; animation:nodePop .4s ease forwards; animation-delay:.3s; }
+.forest-svg text{ opacity:0; animation:nodePop .5s ease forwards; font-family:var(--font-display); fill:#eafeff; }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.2s !important; }
