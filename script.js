@@ -783,6 +783,7 @@
   }
   const opText = document.getElementById('opText');
 
+  let lastShowDiab = false;
   const DIAB_PLAN = ['Agendar control con endocrinología', 'Enviar material educativo sobre alimentación', 'Activar seguimiento trimestral de glucosa'];
   const RENOV_PLAN = ['Contacto proactivo de un asesor en 24h', 'Ofrecer compensación o mejora de plan', 'Marcar cuenta para seguimiento prioritario'];
   const DEFAULT_PLAN = ['Continuar monitoreo estándar', 'Enviar recordatorio de bienestar preventivo'];
@@ -842,6 +843,7 @@
     let showDiab = false;
     if (MODELS) {
       showDiab = risk.diab.proba >= risk.renov.proba;
+      lastShowDiab = showDiab;
       renderForestSVG(showDiab ? MODELS.diabetes : MODELS.no_renovacion, profile, 0);
     }
     renderAiChips(risk, count, showDiab);
@@ -897,6 +899,12 @@
       document.querySelectorAll('.client-tabpanel').forEach((p) => {
         p.hidden = p.dataset.tabPanel !== name;
       });
+      // El panel del árbol está oculto (display:none) hasta que se entra a esta
+      // pestaña, así que la animación de zoom no se alcanza a ver si corrió antes.
+      // La re-disparamos cada vez que el afiliado entra a Recomendaciones.
+      if (name === 'recomendaciones' && MODELS && state.risk) {
+        renderForestSVG(lastShowDiab ? MODELS.diabetes : MODELS.no_renovacion, profile, 0);
+      }
     });
   }
 
