@@ -33,7 +33,7 @@
       treePath: 'salud-bajo',
     },
     {
-      id: 'reembolso', test: (t) => /reembolso|reintegr|devoluci[oó]n/.test(t),
+      id: 'reembolso', test: (t) => /re?embolso|reintegr|devoluci[oó]n/.test(t),
       label: 'Solicitud de reembolso',
       followUp: 'Con gusto te ayudo. ¿Ya tienes la factura y el comprobante de pago a la mano?',
       secondUp: 'Buenísimo. ¿Ya subiste esos documentos al portal o prefieres que te envíe el enlace para hacerlo desde aquí?',
@@ -64,7 +64,7 @@
     id: 'general', label: 'Consulta general',
     followUp: 'Cuéntame un poco más para poder ayudarte mejor — ¿es sobre una cita, un reembolso, una receta o una autorización?',
     secondUp: 'Perfecto, ya tomé nota de eso. ¿Prefieres que te conecte con un asesor humano o seguimos resolviéndolo por aquí?',
-    botReply: 'Gracias por la información, ya quedó registrado. Si necesitas algo puntual sobre una cita, un reembolso, una receta o una autorización, aquí estoy.',
+    botReply: 'Ya quedó registrado en tu perfil. Si necesitas algo puntual sobre una cita, un reembolso, una receta o una autorización, aquí estoy para ayudarte.',
     reasoning: 'El mensaje no coincide con un patrón de riesgo conocido. El modelo lo clasifica como interacción informativa normal y sigue aprendiendo del historial del afiliado.',
     treePath: 'queja-bajo',
   };
@@ -410,8 +410,24 @@
     }
 
     if (convo.stage === 1) {
-      // Turno 2: el usuario respondió la primera pregunta — profundizamos.
-      const { intent } = convo;
+      // Turno 2: el usuario respondió la primera pregunta.
+      // Si el turno 1 fue genérico (saludo, mensaje ambiguo), esta respuesta suele
+      // traer la palabra clave real ("reembolso", "una cita"...) — reintentamos
+      // la detección de intención aquí para que el bot "entienda" igual.
+      let { intent } = convo;
+      if (intent.id === 'general') {
+        const reIntent = matchIntent(text);
+        if (reIntent.id !== 'general') {
+          convo.intent = intent = reIntent;
+          convo.stage = 2;
+          const typing = addTyping();
+          setTimeout(() => {
+            typing.remove();
+            addBubble(intent.followUp || intent.botReply, 'bot');
+          }, reduced ? 50 : 850);
+          return;
+        }
+      }
       convo.stage = 2;
       const typing = addTyping();
       setTimeout(() => {
