@@ -173,6 +173,8 @@
               <div class="bubble bot">¡Hola! Soy ConfIAbot 👋 Tu asistente inteligente dentro de Confiamed. ¿Qué necesitas resolver hoy?</div>
             </div>
             <form class="chat-input" id="chatForm">
+              <input type="file" id="chatFileInput" hidden accept="image/*,.pdf,.doc,.docx">
+              <button class="chat-attach" id="chatAttachBtn" type="button" aria-label="Adjuntar archivo">📎</button>
               <input id="chatInput" type="text" autocomplete="off" placeholder="Escribe tu mensaje…" maxlength="180">
               <button class="chat-send" type="submit" aria-label="Enviar"></button>
             </form>
@@ -395,6 +397,48 @@
           <div class="cstat"><span id="statMsgs">0</span><label>Mensajes procesados</label></div>
           <div class="cstat"><span id="statAlerts">0</span><label>Alertas activas</label></div>
           <div class="cstat" id="statRenewalWrap"><span id="statRenewal">Bajo</span><label>Riesgo de no renovación</label></div>
+        </div>
+
+        <div class="pipe-box dark-card profile360-card" style="margin-top:16px;">
+          <b class="pipe-box-title">🧍 Perfil 360° del afiliado</b>
+          <p class="pipe-sub">Combina salud, uso del servicio y riesgo en una sola vista.</p>
+
+          <div class="profile360-body">
+            <svg class="profile360-figure" viewBox="0 0 200 250" aria-hidden="true">
+              <defs>
+                <linearGradient id="p360BodyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent-soft)"/>
+                  <stop offset="100%" stop-color="var(--accent-soft)" stop-opacity="0.4"/>
+                </linearGradient>
+              </defs>
+              <!-- figura humana realista, de pie, estilo línea -->
+              <circle cx="100" cy="34" r="20" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="2"/>
+              <rect x="92" y="52" width="16" height="12" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="1.6"/>
+              <path d="M66,66 Q100,52 134,66 L140,150 Q100,164 60,150 Z" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="2"/>
+              <rect x="40" y="70" width="18" height="78" rx="9" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="1.8" transform="rotate(4 49 109)"/>
+              <rect x="142" y="70" width="18" height="78" rx="9" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="1.8" transform="rotate(-4 151 109)"/>
+              <rect x="70" y="150" width="26" height="86" rx="12" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="1.8"/>
+              <rect x="104" y="150" width="26" height="86" rx="12" fill="url(#p360BodyGrad)" stroke="var(--accent)" stroke-width="1.8"/>
+
+              <circle class="p360-marker p360-m1" cx="100" cy="34" r="7"/>
+              <circle class="p360-marker p360-m2" cx="82" cy="92" r="7"/>
+              <circle class="p360-marker p360-m3" cx="100" cy="124" r="7"/>
+              <circle class="p360-marker p360-m4" cx="113" cy="178" r="7"/>
+            </svg>
+
+            <ul class="profile360-legend" id="profile360Legend">
+              <li><span class="p360-dot p360-c1"></span><b>Adherencia</b> alta a tratamiento</li>
+              <li><span class="p360-dot p360-c2"></span><b>Hipertensión</b> controlada</li>
+              <li><span class="p360-dot p360-c3"></span><span id="p360DiabText"><b>Diabetes tipo 2</b> en seguimiento</span></li>
+              <li><span class="p360-dot p360-c4"></span><span id="p360CitasText"><b>3 citas</b> en 6 meses</span></li>
+            </ul>
+          </div>
+
+          <div class="profile360-risk">
+            <small>Riesgo de no renovación</small>
+            <div class="profile360-risk-bar"><div class="profile360-risk-fill" id="p360RiskFill"></div></div>
+            <b id="p360RiskPct">12%</b>
+          </div>
         </div>
       </div>
 

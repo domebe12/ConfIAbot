@@ -35,9 +35,10 @@
     {
       id: 'reembolso', test: (t) => /re?embolso|reintegr|devoluci[oó]n/.test(t),
       label: 'Solicitud de reembolso',
-      followUp: 'Con gusto te ayudo. ¿Ya tienes la factura y el comprobante de pago a la mano?',
-      secondUp: 'Buenísimo. ¿Ya subiste esos documentos al portal o prefieres que te envíe el enlace para hacerlo desde aquí?',
-      botReply: 'Para tu reembolso necesito la factura y el comprobante de pago. Ya inicié la solicitud — te llegará una confirmación por correo en las próximas 24 horas.',
+      wantsFile: true,
+      followUp: 'Con gusto te ayudo. Adjunta la factura y el comprobante de pago con el ícono 📎 de aquí abajo para continuar.',
+      secondUp: 'Recibido, gracias. ¿Prefieres que te confirmemos por correo o te avisamos aquí mismo cuando esté listo tu reembolso?',
+      botReply: 'Ya inicié tu solicitud de reembolso con el documento que enviaste — te llegará una confirmación por correo en las próximas 24 horas.',
       reasoning: 'Solicitud administrativa estándar. No se activan señales de riesgo; el modelo la clasifica como interacción informativa normal.',
       treePath: 'queja-bajo',
     },
@@ -391,26 +392,29 @@
   // con una segunda pregunta, y solo cierra (y manda a Almacenamiento)
   // después de la tercera respuesta del usuario — para que se sienta como
   // una conversación real de ida y vuelta, no una respuesta única.
-  let convo = null; // { intent, firstText, stage }
+  // Se guardan TODOS los mensajes del afiliado (no solo el primero) para que
+  // el registro en Almacenamiento refleje la conversación completa.
+  let convo = null; // { intent, messages: [], stage }
 
-  chatForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = chatInput.value.trim();
-    if (!text) return;
-    addBubble(text, 'user');
-    chatInput.value = '';
+  function handleUserTurn(rawText, displayText) {
+    displayText = displayText || rawText;
+    addBubble(displayText, 'user');
+    chatAttachBtn.classList.remove('hint');
 
     if (!convo) {
       // Turno 1: detectar intención y hacer una pregunta de seguimiento real.
-      const intent = matchIntent(text);
-      convo = { intent, firstText: text, stage: 1 };
+      const intent = matchIntent(rawText);
+      convo = { intent, messages: [displayText], stage: 1 };
       const typing = addTyping();
       setTimeout(() => {
         typing.remove();
         addBubble(intent.followUp || intent.botReply, 'bot');
+        if (intent.wantsFile) chatAttachBtn.classList.add('hint');
       }, reduced ? 50 : 850);
       return;
     }
+
+    convo.messages.push(displayText);
 
     if (convo.stage === 1) {
       // Turno 2: el usuario respondió la primera pregunta.
@@ -419,7 +423,7 @@
       // la detección de intención aquí para que el bot "entienda" igual.
       let { intent } = convo;
       if (intent.id === 'general') {
-        const reIntent = matchIntent(text);
+        const reIntent = matchIntent(rawText);
         if (reIntent.id !== 'general') {
           convo.intent = intent = reIntent;
           convo.stage = 2;
@@ -427,6 +431,7 @@
           setTimeout(() => {
             typing.remove();
             addBubble(intent.followUp || intent.botReply, 'bot');
+            if (intent.wantsFile) chatAttachBtn.classList.add('hint');
           }, reduced ? 50 : 850);
           return;
         }
@@ -441,23 +446,43 @@
     }
 
     // Turno 3: el usuario respondió — cerramos la interacción de verdad.
-    const { intent, firstText } = convo;
+    const { intent, messages } = convo;
     convo = null;
     applyIntentToProfile(intent);
     state.risk = computeRisk() || fallbackRisk();
     state.lastIntent = intent;
     state.messages++;
-    state.history.unshift({ time: nowLabel(), msg: firstText, label: intent.label });
+    state.history.unshift({ time: nowLabel(), msg: messages.join(' · '), label: intent.label });
 
     const typing = addTyping();
     setTimeout(() => {
       typing.remove();
       addBubble('Gracias por la información. ' + intent.botReply, 'bot');
-      queueStorageRow(firstText, intent);
+      queueStorageRow(messages, intent);
       unlockTab('almacenamiento'); unlockTab('procesamiento'); unlockTab('cliente');
       showToast();
     }, reduced ? 50 : 950);
+  }
+
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    handleUserTurn(text);
   });
+
+  const chatAttachBtn = document.getElementById('chatAttachBtn');
+  const chatFileInput = document.getElementById('chatFileInput');
+  if (chatAttachBtn && chatFileInput) {
+    chatAttachBtn.addEventListener('click', () => chatFileInput.click());
+    chatFileInput.addEventListener('change', () => {
+      const file = chatFileInput.files && chatFileInput.files[0];
+      chatFileInput.value = '';
+      if (!file) return;
+      handleUserTurn('Adjunté el archivo "' + file.name + '"', '📎 ' + file.name);
+    });
+  }
 
   // ---------------- Toast ----------------
   const toast = document.getElementById('toast');
@@ -491,7 +516,8 @@
     return tr;
   }
 
-  function queueStorageRow(text, intent) {
+  function queueStorageRow(messages, intent) {
+    const text = Array.isArray(messages) ? messages.join('\n') : messages;
     state.pendingRow = { time: nowLabel(), canal: 'App móvil', msg: text, intent: intent.label };
   }
   function nowLabel() {
@@ -820,6 +846,31 @@
     }
     renderAiChips(risk, count, showDiab);
     renderHistory();
+    renderProfile360(risk);
+  }
+
+  // ---------------- Perfil 360° del afiliado ----------------
+  function renderProfile360(risk) {
+    const diabText = document.getElementById('p360DiabText');
+    if (diabText) {
+      diabText.innerHTML = risk.diab.high
+        ? '<b>Diabetes tipo 2</b> — riesgo alto detectado'
+        : '<b>Diabetes tipo 2</b> en seguimiento preventivo';
+    }
+    const citasText = document.getElementById('p360CitasText');
+    if (citasText) {
+      const n = profile.num_citas_glucosa_6m || 0;
+      citasText.innerHTML = '<b>' + n + ' ' + (n === 1 ? 'cita' : 'citas') + '</b> en los últimos 6 meses';
+    }
+    const fill = document.getElementById('p360RiskFill');
+    const pctEl = document.getElementById('p360RiskPct');
+    if (fill && pctEl) {
+      const pct = risk.renov.pct;
+      fill.style.width = pct + '%';
+      fill.classList.toggle('risk', risk.renov.high);
+      pctEl.classList.toggle('risk', risk.renov.high);
+      pctEl.textContent = pct + '%';
+    }
   }
 
   // ---------------- Pestañas del Cliente interno ----------------
