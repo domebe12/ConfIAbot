@@ -78,7 +78,7 @@
   };
 
   // ---------------- State ----------------
-  const state = { messages: 0, alerts: {}, lastIntent: null, pendingRow: null, risk: null };
+  const state = { messages: 0, alerts: {}, lastIntent: null, pendingRow: null, risk: null, history: [] };
 
   // ---------------- Modelo real: Regresión Logística + Random Forest ----------------
   // Entrenados con scikit-learn sobre una base de afiliados sintética (ver
@@ -444,6 +444,7 @@
     state.risk = computeRisk() || fallbackRisk();
     state.lastIntent = intent;
     state.messages++;
+    state.history.unshift({ time: nowLabel(), msg: firstText, label: intent.label });
 
     const typing = addTyping();
     setTimeout(() => {
@@ -813,6 +814,34 @@
       renderForestSVG(showDiab ? MODELS.diabetes : MODELS.no_renovacion, profile, 0);
     }
     renderAiChips(risk, count, showDiab);
+    renderHistory();
+  }
+
+  // ---------------- Pestañas del Cliente interno ----------------
+  const SEED_HISTORY = [
+    { time: 'Ayer · 16:42', msg: '¿Cuál es mi plan actual?', label: 'Consulta general' },
+    { time: 'Ayer · 09:15', msg: 'Necesito mi carné digital', label: 'Consulta general' },
+  ];
+  const historyList = document.getElementById('historyList');
+  function renderHistory() {
+    if (!historyList) return;
+    const rows = [...state.history, ...SEED_HISTORY];
+    historyList.innerHTML = rows.map((r) =>
+      '<li class="history-item"><div class="hi-main"><span class="hi-time">' + r.time + '</span>' +
+      '<span class="hi-msg">' + r.msg + '</span></div><span class="hi-tag">' + r.label + '</span></li>'
+    ).join('');
+  }
+  const clientTabs = document.getElementById('clientTabs');
+  if (clientTabs) {
+    clientTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ct');
+      if (!btn) return;
+      clientTabs.querySelectorAll('.ct').forEach((c) => c.classList.toggle('active', c === btn));
+      const name = btn.dataset.tab;
+      document.querySelectorAll('.client-tabpanel').forEach((p) => {
+        p.hidden = p.dataset.tabPanel !== name;
+      });
+    });
   }
 
   // ---------------- Resúmenes llamativos (ai-chip) por módulo ----------------

@@ -350,7 +350,16 @@
             <div class="id-badges"><span class="status-pill">● Activa</span></div>
           </div>
         </div>
-        <div class="client-tabs"><span class="ct active">Resumen</span><span class="ct">Historial</span><span class="ct">Riesgos</span><span class="ct">Recomendaciones</span></div>
+        <div class="client-tabs" id="clientTabs">
+          <span class="ct active" data-tab="resumen">Resumen</span>
+          <span class="ct" data-tab="historial">Historial</span>
+          <span class="ct" data-tab="riesgos">Riesgos</span>
+          <span class="ct" data-tab="recomendaciones">Recomendaciones</span>
+        </div>
+      </div>
+
+      <!-- ---- Tab: Resumen ---- -->
+      <div class="client-tabpanel" data-tab-panel="resumen">
         <div class="ai-chip" id="chipClient"><span class="ai-chip-ic">✨</span><span id="chipClientText">Analizando perfil…</span></div>
         <div class="client-stats">
           <div class="cstat"><span id="statMsgs">0</span><label>Mensajes procesados</label></div>
@@ -359,7 +368,17 @@
         </div>
       </div>
 
-      <div class="result-grid">
+      <!-- ---- Tab: Historial ---- -->
+      <div class="client-tabpanel" data-tab-panel="historial" hidden>
+        <div class="pipe-box dark-card">
+          <b class="pipe-box-title">🕘 Historial de interacciones</b>
+          <p class="pipe-sub">Cada mensaje que escribe en el chat queda registrado aquí, con la intención que detectó el modelo.</p>
+          <ul class="history-list" id="historyList"></ul>
+        </div>
+      </div>
+
+      <!-- ---- Tab: Riesgos ---- -->
+      <div class="client-tabpanel" data-tab-panel="riesgos" hidden>
         <div class="pipe-box dark-card gauge-card">
           <b class="pipe-box-title">🎯 Predicción de riesgo</b>
           <div class="ai-chip" id="chipRisk"><span class="ai-chip-ic">⚡</span><span id="chipRiskText">Calculando…</span></div>
@@ -372,44 +391,46 @@
             </div>
           </div>
         </div>
+        <div class="alerts-wrap" id="alertsWrap" style="margin-top:16px;">
+          <div class="alert-card baseline" id="alertBaseline">
+            <span class="alert-ic">✅</span>
+            <div><b>Sin alertas activas</b><p>El perfil está estable. Seguiremos aprendiendo con cada interacción.</p></div>
+          </div>
+        </div>
+      </div>
 
+      <!-- ---- Tab: Recomendaciones ---- -->
+      <div class="client-tabpanel" data-tab-panel="recomendaciones" hidden>
         <div class="pipe-box dark-card">
           <b class="pipe-box-title">⭐ Estrategia recomendada</b>
           <div class="ai-chip" id="chipStrategy"><span class="ai-chip-ic">🚀</span><span id="chipStrategyText">Definiendo prioridad…</span></div>
           <p class="op-text" id="opText">Recomendación personalizada: recordatorio de control médico y programa de bienestar.</p>
           <ul class="pipe-list strategy-list" id="strategyList"></ul>
         </div>
-      </div>
 
-      <div class="pipe-box dark-card" style="margin-top:16px;">
-        <b class="pipe-box-title">🧠 Modelo predictivo en acción</b>
-        <div class="ai-chip" id="chipModel"><span class="ai-chip-ic">🌲</span><span id="chipModelText">Cargando modelo…</span></div>
-        <div class="predictivo-row">
-          <img class="pipe-art" src="assets/art-brain-predictive.png" alt="IA">
-          <div class="forest-wrap">
-            <small class="pipe-sub model-meta" id="forestCaption">→ Random Forest — un árbol real del modelo, con el camino de decisión resaltado</small>
-            <svg id="forestSvg" class="forest-svg" viewBox="0 0 300 195" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="pipe-box dark-card" style="margin-top:16px;">
+          <b class="pipe-box-title">🧠 Modelo predictivo en acción</b>
+          <div class="ai-chip" id="chipModel"><span class="ai-chip-ic">🌲</span><span id="chipModelText">Cargando modelo…</span></div>
+          <div class="predictivo-row">
+            <img class="pipe-art" src="assets/art-brain-predictive.png" alt="IA">
+            <div class="forest-wrap">
+              <small class="pipe-sub model-meta" id="forestCaption">→ Random Forest — un árbol real del modelo, con el camino de decisión resaltado</small>
+              <svg id="forestSvg" class="forest-svg" viewBox="0 0 300 195" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="checklist-row">
-        <div class="pipe-box dark-card">
-          <b class="pipe-box-title">✔️ Tu dato, nuestra ventaja</b>
-          <div class="ai-chip" id="chipValue"><span class="ai-chip-ic">💎</span><span id="chipValueText">1 mensaje ya mejora tu atención</span></div>
-          <ul class="check-list">
-            <li>✅ Más prevención</li>
-            <li>✅ Mejores decisiones</li>
-            <li>✅ Mayor eficiencia</li>
-            <li>✅ Más satisfacción</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="alerts-wrap" id="alertsWrap">
-        <div class="alert-card baseline" id="alertBaseline">
-          <span class="alert-ic">✅</span>
-          <div><b>Sin alertas activas</b><p>El perfil está estable. Seguiremos aprendiendo con cada interacción.</p></div>
+        <div class="checklist-row" style="margin-top:16px;">
+          <div class="pipe-box dark-card">
+            <b class="pipe-box-title">✔️ Tu dato, nuestra ventaja</b>
+            <div class="ai-chip" id="chipValue"><span class="ai-chip-ic">💎</span><span id="chipValueText">1 mensaje ya mejora tu atención</span></div>
+            <ul class="check-list">
+              <li>✅ Más prevención</li>
+              <li>✅ Mejores decisiones</li>
+              <li>✅ Mayor eficiencia</li>
+              <li>✅ Más satisfacción</li>
+            </ul>
+          </div>
         </div>
       </div>
 

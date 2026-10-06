@@ -375,7 +375,8 @@ main#app{ position:relative; z-index:1; }
 .strategy-list li{ font-size:12px; padding:3px 0 3px 16px; position:relative; }
 .strategy-list li::before{ content:'→'; position:absolute; left:0; color:var(--accent-2); }
 .client-tabs{ display:flex; gap:18px; margin:16px 2px 4px; border-bottom:1px solid rgba(114,190,230,0.18); flex-wrap:wrap; }
-.ct{ font-size:12px; font-weight:600; color:#8fb3d6; padding:8px 2px; cursor:default; border-bottom:2px solid transparent; }
+.ct{ font-size:12px; font-weight:600; color:#8fb3d6; padding:8px 2px; cursor:pointer; border-bottom:2px solid transparent; transition:color .15s ease; }
+.ct:hover{ color:#fff; }
 .ct.active{ color:#fff; border-bottom-color:var(--accent-2); }
 .dark-inner .cstat{ background:rgba(255,255,255,0.05); border-color:rgba(114,190,230,0.2); }
 .dark-inner .cstat span{ color:#7fe3f5; }
@@ -561,6 +562,7 @@ main#app{ position:relative; z-index:1; }
 .view[data-view="cliente"] #statRenewalWrap.risk span{ color:var(--danger); }
 .view[data-view="cliente"] .client-tabs{ border-bottom-color:var(--border); }
 .view[data-view="cliente"] .ct{ color:var(--muted); }
+.view[data-view="cliente"] .ct:hover{ color:var(--ink); }
 .view[data-view="cliente"] .ct.active{ color:var(--ink); border-bottom-color:var(--accent); }
 .view[data-view="cliente"] .gauge{ background:conic-gradient(var(--accent-2) calc(var(--pct)*1%), #e7eef6 0); }
 .view[data-view="cliente"] .gauge::before{ background:var(--surface-solid); }
@@ -582,24 +584,30 @@ main#app{ position:relative; z-index:1; }
 .view[data-view="cliente"] .pipe-sub.model-meta{ color:var(--muted); }
 
 /* ================================================================
-   AI-CHIP — resumen llamativo por módulo (Cliente interno)
+   AI-CHIP — resumen corto por módulo (Cliente interno), sutil
    ================================================================ */
 .ai-chip{
   display:inline-flex; align-items:center; gap:7px;
-  margin:10px 0 14px; padding:7px 14px 7px 10px;
+  margin:10px 0 14px; padding:6px 13px 6px 10px;
   border-radius:999px; max-width:100%;
-  background:linear-gradient(100deg,#0a4fa5,#3fd6f0 45%,#7c6cf2 75%,#0a4fa5);
-  background-size:260% 100%;
-  color:#fff; font-family:var(--font-display); font-weight:700; font-size:11.5px;
+  background:var(--accent-soft); color:var(--accent);
+  font-family:var(--font-display); font-weight:700; font-size:11.5px;
   letter-spacing:.1px; line-height:1.3;
-  box-shadow:0 10px 22px -12px rgba(10,79,165,0.55), 0 0 0 1px rgba(255,255,255,0.14) inset;
-  animation:aiChipSheen 5s linear infinite;
+  border:1px solid rgba(11,99,206,0.18);
 }
-.ai-chip-ic{ font-size:13px; flex:none; filter:drop-shadow(0 0 4px rgba(255,255,255,0.6)); }
+.ai-chip-ic{ font-size:13px; flex:none; }
 .ai-chip span:last-child{ overflow:hidden; text-overflow:ellipsis; }
-@keyframes aiChipSheen{
-  0%{ background-position:0% 50%; }
-  100%{ background-position:200% 50%; }
-}
-@media (prefers-reduced-motion: reduce){ .ai-chip{ animation:none; } }
 @media (max-width:640px){ .ai-chip{ font-size:10.5px; padding:6px 11px 6px 9px; white-space:normal; } }
+
+/* ================================================================
+   Pestañas del Cliente interno (Resumen / Historial / Riesgos / Recomendaciones)
+   ================================================================ */
+.client-tabpanel{ animation:cardPopIn .4s ease both; }
+.history-list{ display:flex; flex-direction:column; gap:10px; margin-top:12px; padding:0; list-style:none; }
+.history-item{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:#f7fafd; border:1px solid var(--border); border-radius:12px; padding:10px 14px; }
+.history-item .hi-main{ min-width:0; }
+.history-item .hi-time{ display:block; font-size:10px; color:var(--muted); margin-bottom:2px; }
+.history-item .hi-msg{ display:block; font-size:12.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46ch; }
+.history-item .hi-tag{ flex:none; font-size:10px; font-weight:700; color:var(--accent); background:var(--accent-soft);
+  border-radius:999px; padding:4px 10px; }
