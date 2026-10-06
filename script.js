@@ -8,6 +8,7 @@
       test: (t) => /gluco|az[uú]car|diabet/.test(t),
       label: 'Riesgo de salud (glucosa)',
       followUp: 'Entiendo, gracias por contarme. ¿Hace cuánto notas esto y ya lo has consultado con algún médico?',
+      secondUp: 'Gracias. ¿Quieres que te agende directamente un control con endocrinología, o prefieres que primero te enviemos información de nutrición y manejo de glucosa?',
       botReply: 'Veo que mencionas temas de glucosa. Ya registré esto junto a tu historial reciente — cuentas con varias consultas relacionadas. Te recomiendo agendar un control con endocrinología cuanto antes.',
       reasoning: 'Se detectan consultas relacionadas a glucosa, combinadas con la edad del afiliado. El modelo activa la rama de "Señales de salud".',
       treePath: 'salud-alto',
@@ -17,6 +18,7 @@
       test: (t) => /quej|reclam|molest|insatisf|mal servicio|p[eé]sim|no.{0,3}resuelv/.test(t),
       label: 'Riesgo de satisfacción (queja)',
       followUp: 'Lamento mucho escuchar eso. ¿Podrías contarme brevemente qué pasó, para escalarlo con el equipo correcto?',
+      secondUp: 'Entendido, ya tomé nota. ¿Prefieres que te contactemos por teléfono o por correo para darte seguimiento personalizado?',
       botReply: 'Lamento que hayas tenido inconvenientes. Registré tu comentario — veo que no es la primera vez, así que lo estoy escalando a nuestro equipo de retención para un seguimiento personalizado.',
       reasoning: 'Se detectan quejas repetidas. El modelo activa la rama de "Señales de satisfacción".',
       treePath: 'queja-alto',
@@ -25,6 +27,7 @@
       id: 'cita', test: (t) => /cita|turno|agendar|consulta m[eé]dica/.test(t),
       label: 'Consulta de cita médica',
       followUp: 'Claro que sí, dame un momento para revisar tu agenda. ¿Tienes alguna fecha en mente o prefieres la próxima disponible?',
+      secondUp: 'Perfecto, reviso la próxima disponible. ¿Prefieres que te enviemos el recordatorio por WhatsApp o por correo electrónico?',
       botReply: 'Tu próxima cita es el 15 de octubre de 2025 a las 10:30 a.m. con el Dr. Andrés López en Clínica SanVida. ¿Quieres que te la recuerde un día antes?',
       reasoning: 'Consulta puntual sobre citas médicas, sin patrón de riesgo asociado. El modelo sigue la rama de "Señales de salud" con desenlace de seguimiento estándar.',
       treePath: 'salud-bajo',
@@ -33,6 +36,7 @@
       id: 'reembolso', test: (t) => /reembolso|reintegr|devoluci[oó]n/.test(t),
       label: 'Solicitud de reembolso',
       followUp: 'Con gusto te ayudo. ¿Ya tienes la factura y el comprobante de pago a la mano?',
+      secondUp: 'Buenísimo. ¿Ya subiste esos documentos al portal o prefieres que te envíe el enlace para hacerlo desde aquí?',
       botReply: 'Para tu reembolso necesito la factura y el comprobante de pago. Ya inicié la solicitud — te llegará una confirmación por correo en las próximas 24 horas.',
       reasoning: 'Solicitud administrativa estándar. No se activan señales de riesgo; el modelo la clasifica como interacción informativa normal.',
       treePath: 'queja-bajo',
@@ -41,6 +45,7 @@
       id: 'receta', test: (t) => /receta|medicamento|farmacia|pastilla/.test(t),
       label: 'Consulta de receta',
       followUp: 'Claro. ¿Es para retirar una receta que ya tienes activa o necesitas que un médico te emita una nueva?',
+      secondUp: 'Entendido. ¿Quieres que te muestre las farmacias afiliadas más cercanas a ti para retirarla?',
       botReply: 'Tu receta activa incluye Losartán 50mg — puedes reclamarla en cualquier farmacia afiliada presentando tu cédula. ¿Quieres que te muestre las farmacias más cercanas?',
       reasoning: 'Consulta puntual sobre medicación, sin patrón de riesgo asociado. Camino de seguimiento estándar dentro de "Señales de salud".',
       treePath: 'salud-bajo',
@@ -49,6 +54,7 @@
       id: 'autorizacion', test: (t) => /autorizaci|procedimiento|cirug[ií]a/.test(t),
       label: 'Autorización de procedimiento',
       followUp: 'Perfecto, reviso eso contigo. ¿Es una autorización nueva o le estás dando seguimiento a una que ya enviaste?',
+      secondUp: 'Listo, ya quedó anotado. ¿Quieres recibir el estado de tu autorización por notificación push o por correo electrónico?',
       botReply: 'Tu solicitud de autorización fue recibida y está en revisión por nuestro equipo médico. El tiempo estimado de respuesta es de 48 horas.',
       reasoning: 'Solicitud administrativa estándar. Interacción informativa normal, sin señales de riesgo.',
       treePath: 'queja-bajo',
@@ -57,6 +63,7 @@
   const DEFAULT_INTENT = {
     id: 'general', label: 'Consulta general',
     followUp: 'Cuéntame un poco más para poder ayudarte mejor — ¿es sobre una cita, un reembolso, una receta o una autorización?',
+    secondUp: 'Perfecto, ya tomé nota de eso. ¿Prefieres que te conecte con un asesor humano o seguimos resolviéndolo por aquí?',
     botReply: 'Gracias por la información, ya quedó registrado. Si necesitas algo puntual sobre una cita, un reembolso, una receta o una autorización, aquí estoy.',
     reasoning: 'El mensaje no coincide con un patrón de riesgo conocido. El modelo lo clasifica como interacción informativa normal y sigue aprendiendo del historial del afiliado.',
     treePath: 'queja-bajo',
@@ -377,10 +384,11 @@
     return d;
   }
 
-  // Conversación de 2 turnos: el bot primero pregunta algo puntual y solo
-  // cierra (y manda a Almacenamiento) después de la respuesta del usuario —
-  // para que se sienta como una conversación real, no una respuesta única.
-  let convo = null; // { intent, firstText }
+  // Conversación de 3 turnos: el bot pregunta algo puntual, luego profundiza
+  // con una segunda pregunta, y solo cierra (y manda a Almacenamiento)
+  // después de la tercera respuesta del usuario — para que se sienta como
+  // una conversación real de ida y vuelta, no una respuesta única.
+  let convo = null; // { intent, firstText, stage }
 
   chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -392,7 +400,7 @@
     if (!convo) {
       // Turno 1: detectar intención y hacer una pregunta de seguimiento real.
       const intent = matchIntent(text);
-      convo = { intent, firstText: text };
+      convo = { intent, firstText: text, stage: 1 };
       const typing = addTyping();
       setTimeout(() => {
         typing.remove();
@@ -401,7 +409,19 @@
       return;
     }
 
-    // Turno 2: el usuario respondió — cerramos la interacción de verdad.
+    if (convo.stage === 1) {
+      // Turno 2: el usuario respondió la primera pregunta — profundizamos.
+      const { intent } = convo;
+      convo.stage = 2;
+      const typing = addTyping();
+      setTimeout(() => {
+        typing.remove();
+        addBubble(intent.secondUp || intent.botReply, 'bot');
+      }, reduced ? 50 : 850);
+      return;
+    }
+
+    // Turno 3: el usuario respondió — cerramos la interacción de verdad.
     const { intent, firstText } = convo;
     convo = null;
     applyIntentToProfile(intent);
@@ -771,10 +791,39 @@
       else if (risk.diab.high) opText.textContent = 'Recomendación personalizada: programa de control de glucosa, seguimiento nutricional y recordatorio de citas con endocrinología.';
       else opText.textContent = 'Recomendación personalizada: recordatorio de control médico y programa de bienestar.';
     }
+    let showDiab = false;
     if (MODELS) {
-      const showDiab = risk.diab.proba >= risk.renov.proba;
+      showDiab = risk.diab.proba >= risk.renov.proba;
       renderForestSVG(showDiab ? MODELS.diabetes : MODELS.no_renovacion, profile, 0);
     }
+    renderAiChips(risk, count, showDiab);
+  }
+
+  // ---------------- Resúmenes llamativos (ai-chip) por módulo ----------------
+  function setChip(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+  function renderAiChips(risk, alertCount, showDiab) {
+    const anyHigh = risk.renov.high || risk.diab.high;
+    setChip('chipClientText', anyHigh
+      ? 'Perfil con ' + plural(alertCount, 'señal activa', 'señales activas') + ' — requiere atención'
+      : 'Perfil estable · sin señales de riesgo relevantes');
+
+    setChip('chipRiskText', risk.renov.high
+      ? 'Riesgo alto de no renovación (' + risk.renov.pct + '%) — percentil ' + risk.renov.pctl + ' del segmento'
+      : 'Riesgo bajo de no renovación (' + risk.renov.pct + '%) — dentro de lo esperado');
+
+    setChip('chipStrategyText', risk.renov.high
+      ? 'Prioridad alta: contacto de retención en menos de 24h'
+      : (risk.diab.high ? 'Prioridad media: seguimiento preventivo de salud' : 'Prioridad estándar: mantener el buen vínculo'));
+
+    setChip('chipModelText', (showDiab ? 'Riesgo de salud' : 'No renovación') +
+      ' · ' + (MODELS ? MODELS[showDiab ? 'diabetes' : 'no_renovacion'].rf.trees.length : 12) + ' árboles votando en tiempo real');
+
+    setChip('chipValueText', state.messages === 1
+      ? '1 mensaje analizado ya mejora la atención que recibe'
+      : state.messages + ' mensajes analizados ya mejoran la atención que recibe');
   }
   function addAlert(a) {
     let div = state.alerts[a.key];

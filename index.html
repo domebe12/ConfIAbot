@@ -99,9 +99,6 @@
           <p class="hero-sub">Pregúntame lo que necesites — citas, reembolsos, recetas o autorizaciones — y te muestro exactamente qué pasa detrás de escena: cómo guardo tu mensaje, cómo lo procesa el modelo, y qué aprende sobre tu perfil.</p>
           <div class="hero-hint">💡 Prueba a mencionar algo como "tengo 4 citas por mi glucosa" o "ya es la tercera vez que me quejo" para ver alertas especiales.</div>
         </div>
-        <div class="portal-mascot-wrap">
-          <img class="portal-mascot" src="assets/mascot-hero.png" alt="ConfIAbot">
-        </div>
       </div>
     </div>
   </section>
@@ -354,6 +351,7 @@
           </div>
         </div>
         <div class="client-tabs"><span class="ct active">Resumen</span><span class="ct">Historial</span><span class="ct">Riesgos</span><span class="ct">Recomendaciones</span></div>
+        <div class="ai-chip" id="chipClient"><span class="ai-chip-ic">✨</span><span id="chipClientText">Analizando perfil…</span></div>
         <div class="client-stats">
           <div class="cstat"><span id="statMsgs">0</span><label>Mensajes procesados</label></div>
           <div class="cstat"><span id="statAlerts">0</span><label>Alertas activas</label></div>
@@ -364,6 +362,7 @@
       <div class="result-grid">
         <div class="pipe-box dark-card gauge-card">
           <b class="pipe-box-title">🎯 Predicción de riesgo</b>
+          <div class="ai-chip" id="chipRisk"><span class="ai-chip-ic">⚡</span><span id="chipRiskText">Calculando…</span></div>
           <div class="gauge-wrap">
             <div class="gauge" id="riskGauge"><span id="riskGaugeLabel">Bajo</span></div>
             <div class="gauge-detail">
@@ -376,6 +375,7 @@
 
         <div class="pipe-box dark-card">
           <b class="pipe-box-title">⭐ Estrategia recomendada</b>
+          <div class="ai-chip" id="chipStrategy"><span class="ai-chip-ic">🚀</span><span id="chipStrategyText">Definiendo prioridad…</span></div>
           <p class="op-text" id="opText">Recomendación personalizada: recordatorio de control médico y programa de bienestar.</p>
           <ul class="pipe-list strategy-list" id="strategyList"></ul>
         </div>
@@ -383,6 +383,7 @@
 
       <div class="pipe-box dark-card" style="margin-top:16px;">
         <b class="pipe-box-title">🧠 Modelo predictivo en acción</b>
+        <div class="ai-chip" id="chipModel"><span class="ai-chip-ic">🌲</span><span id="chipModelText">Cargando modelo…</span></div>
         <div class="predictivo-row">
           <img class="pipe-art" src="assets/art-brain-predictive.png" alt="IA">
           <div class="forest-wrap">
@@ -395,6 +396,7 @@
       <div class="checklist-row">
         <div class="pipe-box dark-card">
           <b class="pipe-box-title">✔️ Tu dato, nuestra ventaja</b>
+          <div class="ai-chip" id="chipValue"><span class="ai-chip-ic">💎</span><span id="chipValueText">1 mensaje ya mejora tu atención</span></div>
           <ul class="check-list">
             <li>✅ Más prevención</li>
             <li>✅ Mejores decisiones</li>
