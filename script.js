@@ -349,6 +349,7 @@
     if (name === 'procesamiento') playNetwork();
     if (name === 'cliente') renderClient();
     if (name === 'chat') document.getElementById('chatInput').focus();
+    if (chatFab) chatFab.classList.toggle('hide', name === 'bienvenida' || name === 'chat');
   }
   function unlockTab(name) {
     const b = tabBtns.find((x) => x.dataset.view === name);
@@ -361,6 +362,8 @@
   btnOpenChat.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView('chat'); } });
   document.getElementById('btnGoProc').addEventListener('click', () => showView('procesamiento'));
   document.getElementById('btnGoCliente').addEventListener('click', () => showView('cliente'));
+  const chatFab = document.getElementById('chatFab');
+  if (chatFab) chatFab.addEventListener('click', () => showView('chat'));
 
   // ---------------- Chat ----------------
   const chatBody = document.getElementById('chatBody');
@@ -781,7 +784,9 @@
     const strategyList = document.getElementById('strategyList');
     if (strategyList) {
       const items = [...(risk.renov.high ? RENOV_PLAN : []), ...(risk.diab.high ? DIAB_PLAN : [])];
-      strategyList.innerHTML = (items.length ? items : DEFAULT_PLAN).map((p) => '<li>' + p + '</li>').join('');
+      strategyList.innerHTML = (items.length ? items : DEFAULT_PLAN).map((p) =>
+        '<li><span class="strategy-box"></span><span class="strategy-text">' + p + '</span><span class="strategy-check">✓</span></li>'
+      ).join('');
     }
     const count = Object.keys(state.alerts).length;
     animateCount(statAlerts, count);

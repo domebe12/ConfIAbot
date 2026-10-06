@@ -86,9 +86,39 @@
             <p>¿En qué podemos ayudarte hoy?</p>
           </div>
           <div class="portal-quickstats">
-            <div class="qstat"><b>Plan Oro</b><small>Tu cobertura activa</small></div>
-            <div class="qstat"><b>6 años</b><small>Como afiliada</small></div>
-            <div class="qstat"><b>0</b><small>Solicitudes pendientes</small></div>
+            <div class="qstat">
+              <b>Plan Oro</b><small>Tu cobertura activa</small>
+              <svg class="qstat-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+                <defs><linearGradient id="sparkGrad1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent-2)" stop-opacity="0.35"/>
+                  <stop offset="100%" stop-color="var(--accent-2)" stop-opacity="0"/>
+                </linearGradient></defs>
+                <path d="M0,24 L14,20 L28,23 L42,14 L56,17 L70,8 L84,11 L100,4 L100,32 L0,32 Z" fill="url(#sparkGrad1)"/>
+                <path d="M0,24 L14,20 L28,23 L42,14 L56,17 L70,8 L84,11 L100,4" fill="none" stroke="var(--accent-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="qstat">
+              <b>6 años</b><small>Como afiliada</small>
+              <svg class="qstat-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+                <defs><linearGradient id="sparkGrad2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+                </linearGradient></defs>
+                <path d="M0,20 L14,22 L28,16 L42,19 L56,10 L70,13 L84,6 L100,9 L100,32 L0,32 Z" fill="url(#sparkGrad2)"/>
+                <path d="M0,20 L14,22 L28,16 L42,19 L56,10 L70,13 L84,6 L100,9" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="qstat">
+              <b>0</b><small>Solicitudes pendientes</small>
+              <svg class="qstat-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+                <defs><linearGradient id="sparkGrad3" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#188a4a" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="#188a4a" stop-opacity="0"/>
+                </linearGradient></defs>
+                <path d="M0,10 L14,13 L28,9 L42,16 L56,18 L70,22 L84,20 L100,26 L100,32 L0,32 Z" fill="url(#sparkGrad3)"/>
+                <path d="M0,10 L14,13 L28,9 L42,16 L56,18 L70,22 L84,20 L100,26" fill="none" stroke="#188a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
           </div>
           <div class="portal-cards">
             <div class="portal-card"><span class="pc-ic">✅</span><b>Autorizaciones</b><small>Solicita y da seguimiento</small></div>
@@ -445,6 +475,10 @@
   <span class="toast-ic">🔔</span>
   <div><b>Nuevo registro en Almacenamiento</b><p>Haz clic para verlo guardarse en tiempo real</p></div>
 </div>
+
+<button class="chat-fab" id="chatFab" type="button" aria-label="Abrir chat con ConfIAbot">
+  <img src="assets/mascot-avatar.png" alt="">
+</button>
 
 <script src="script.js?v=20261005c"></script>
 </body>
