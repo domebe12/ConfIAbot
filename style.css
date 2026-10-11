@@ -889,3 +889,7 @@ main#app{ position:relative; z-index:1; }
 @media (max-width:900px){ .mlf-grid{ grid-template-columns:1fr; grid-template-areas:'a' 'b' 'n' 'r'; } }
 @media (prefers-reduced-motion:reduce){ .mlf-e,.mlf-win,.mlf-n,.mlf-lbl,.mlf-net{ animation-duration:.01s !important; animation-delay:0s !important; } }
 .decision-card summary{ cursor:pointer; list-style:none; } .decision-card summary::-webkit-details-marker{ display:none; } .decision-card summary::after{ content:' ▾'; color:#8fb3d6; }
+
+.forest-svg .vote-row{ opacity:0; animation:mlfIn .5s ease forwards; }
+.forest-svg .vote-bar{ transform-box:fill-box; transform-origin:left center; transform:scaleX(0); animation:voteGrow .7s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes voteGrow{ to{ transform:scaleX(1); } }

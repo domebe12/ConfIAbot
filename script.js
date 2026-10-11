@@ -218,96 +218,61 @@
     if (!svg || !model) return;
     const trees = model.rf.trees;
     const heroIdx = treeIdx % trees.length;
-    const cols = 4, cellW = 240, cellH = 150;
-    const rows = Math.ceil(trees.length / cols);
-    const vbW = cols * cellW, vbH = rows * cellH;
-    svg.setAttribute('viewBox', `0 0 ${vbW} ${vbH}`);
+    const W = 920, H = 372, TX0 = 20, TX1 = 540;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    const isDiab = model === (MODELS && MODELS.diabetes);
+    const probs = trees.map((t) => evalTree(t, feat));
+    const mean = probs.reduce((a, b2) => a + b2, 0) / probs.length;
 
-    const parts = [`<defs>
-      <filter id="treeGlow" x="-120%" y="-120%" width="340%" height="340%">
-        <feGaussianBlur stdDeviation="3.2" result="b"/>
-        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <radialGradient id="nodeGlowOn" cx="40%" cy="35%" r="65%">
-        <stop offset="0%" stop-color="#eafeff"/>
-        <stop offset="45%" stop-color="#5fe3f7"/>
-        <stop offset="100%" stop-color="#0c87ad"/>
-      </radialGradient>
-    </defs>`, '<g id="forestGroup">'];
-
-    let heroOut = null, heroPy = null, heroCx = 0, heroCy = 0;
-    trees.forEach((tree, i) => {
-      const col = i % cols, row = Math.floor(i / cols);
-      const x0 = col * cellW + 14, x1 = (col + 1) * cellW - 14;
-      const y0 = row * cellH + 16;
-      const out = { nodes: [], edges: [], maxDepth: 0 };
-      layoutTree(tree, feat, 0, x0, x1, true, out);
-      const isHero = i === heroIdx;
-      const { parts: cellParts, py } = treeCellParts(out, y0, cellH - 32, isHero);
-      if (isHero) {
-        heroOut = out; heroPy = py;
-        heroCx = col * cellW + cellW / 2; heroCy = row * cellH + cellH / 2;
-        parts.push('<g id="heroTree">' + cellParts.join('') + '</g>');
-      } else {
-        parts.push('<g class="other-tree">' + cellParts.join('') + '</g>');
-      }
-    });
-    parts.push('</g>');
-
-    // texto final: solo el resultado, junto al nodo-hoja resaltado del árbol hero
-    const leafPathNode = heroOut.nodes.find((n) => n.onPath && 'leaf' in n.node);
-    if (leafPathNode) {
-      const cy = heroPy(leafPathNode.y);
-      const r = 9 + leafPathNode.node.leaf * 5;
-      const delay = (leafPathNode.y * 0.16 + 0.3).toFixed(2);
-      const onRight = leafPathNode.x <= heroCx + 20;
-      const lx = onRight ? leafPathNode.x + r + 8 : leafPathNode.x - r - 8;
-      const anchor = onRight ? 'start' : 'end';
-      parts.push(`<text class="leaf-label" x="${lx}" y="${cy + 4}" font-size="13" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle" fill="#eafeff" style="animation-delay:${delay}s">${Math.round(leafPathNode.node.leaf * 100)}%</text>`);
+    // árbol grande con el camino de decisión resaltado
+    const out = { nodes: [], edges: [], maxDepth: 0 };
+    layoutTree(trees[heroIdx], feat, 0, TX0 + 10, TX1 - 10, true, out);
+    const { parts, py } = treeCellParts(out, 40, H - 80, true);
+    const parts2 = ['<defs><filter id="treeGlow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '<radialGradient id="nodeGlowOn" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#eafeff"/><stop offset="45%" stop-color="#5fe3f7"/><stop offset="100%" stop-color="#0c87ad"/></radialGradient></defs>'];
+    parts2.push('<text x="' + TX0 + '" y="20" font-size="13" font-weight="700" style="animation-delay:.1s">Un árbol de decisión, por dentro</text>');
+    parts2.push('<g id="heroTree">' + parts.join('') + '</g>');
+    const leafN = out.nodes.find((n) => n.onPath && 'leaf' in n.node);
+    if (leafN) {
+      const r = 9 + leafN.node.leaf * 5, cy = py(leafN.y);
+      const right = leafN.x < (TX0 + TX1) / 2;
+      parts2.push('<text x="' + (right ? leafN.x + r + 8 : leafN.x - r - 8) + '" y="' + (cy + 4) + '" font-size="15" font-weight="800" text-anchor="' + (right ? 'start' : 'end') + '" style="animation-delay:1.2s">' + Math.round(leafN.node.leaf * 100) + '%</text>');
     }
 
-    svg.innerHTML = parts.join('');
+    // votación de los árboles del bosque
+    const VX = 600, rowH = 21, vy0 = 56, barW = 205;
+    parts2.push('<text x="' + VX + '" y="20" font-size="13" font-weight="700" style="animation-delay:.3s">Los ' + trees.length + ' árboles votan</text>');
+    probs.forEach((p, i) => {
+      const y = vy0 + i * rowH, d = (1.0 + i * 0.16).toFixed(2);
+      parts2.push('<g class="vote-row" style="animation-delay:' + d + 's">' +
+        '<text x="' + VX + '" y="' + (y + 4) + '" font-size="10.5" style="opacity:1;animation:none;fill:#8fb3d6">Árbol ' + (i + 1) + '</text>' +
+        '<rect x="' + (VX + 62) + '" y="' + (y - 5) + '" width="' + barW + '" height="10" rx="5" fill="rgba(255,255,255,.08)"/>' +
+        '<rect class="vote-bar" x="' + (VX + 62) + '" y="' + (y - 5) + '" width="' + Math.max(4, p * barW).toFixed(1) + '" height="10" rx="5" fill="' + leafColor(p) + '" style="animation-delay:' + d + 's"/>' +
+        '<text x="' + (VX + 62 + barW + 8) + '" y="' + (y + 4) + '" font-size="10.5" style="opacity:1;animation:none;fill:#dcebf8">' + Math.round(p * 100) + '%</text></g>');
+    });
+    const fy = vy0 + trees.length * rowH + 14, fd = (1.0 + trees.length * 0.16 + 0.3).toFixed(2);
+    parts2.push('<g class="vote-row" style="animation-delay:' + fd + 's"><line x1="' + VX + '" y1="' + (fy - 14) + '" x2="' + (VX + 330) + '" y2="' + (fy - 14) + '" stroke="rgba(114,190,230,.3)"/>' +
+      '<text x="' + VX + '" y="' + (fy + 14) + '" font-size="12" style="opacity:1;animation:none;fill:#bcd4ec">Promedio del bosque</text>' +
+      '<text x="' + (VX + 330) + '" y="' + (fy + 16) + '" font-size="26" font-weight="800" text-anchor="end" style="opacity:1;animation:none;fill:' + leafColor(mean) + '">' + Math.round(mean * 100) + '%</text></g>');
+    svg.innerHTML = parts2.join('');
 
-    // --- Coreografía: zoom al camino tomado -> punto viajando -> zoom out al bosque completo ---
-    const group = svg.querySelector('#forestGroup');
-    const scaleFactor = Math.min(3.2, Math.max(1.8, Math.min(vbW / cellW, vbH / cellH) * 0.82));
-    const tx = vbW / 2 - scaleFactor * heroCx, ty = vbH / 2 - scaleFactor * heroCy;
-    svg.classList.remove('zoomed-out');
-    group.style.transition = 'none';
-    group.style.transform = `translate(${tx}px,${ty}px) scale(${scaleFactor})`;
-    void group.getBoundingClientRect();
-    group.style.transition = 'transform 1.3s cubic-bezier(.3,.7,.15,1)';
-
-    const motionD = heroMotionPath(heroOut, heroPy);
-    const motionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    motionPath.setAttribute('d', motionD);
-    motionPath.setAttribute('fill', 'none');
-    motionPath.setAttribute('stroke', 'none');
+    // punto de luz recorriendo el camino tomado por el árbol grande
     const heroG = svg.querySelector('#heroTree');
-    heroG.appendChild(motionPath);
+    const mp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    mp.setAttribute('d', heroMotionPath(out, py)); mp.setAttribute('fill', 'none'); mp.setAttribute('stroke', 'none');
+    heroG.appendChild(mp);
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('r', '6'); dot.setAttribute('class', 'flow-packet');
     heroG.appendChild(dot);
-    const totalLen = motionPath.getTotalLength();
-    const dur = 1100, start = performance.now();
-    function tick(t) {
-      const p = Math.min(1, (t - start) / dur);
-      const pt = motionPath.getPointAtLength(p * totalLen);
+    const len = mp.getTotalLength(), dur = 1200, start = performance.now();
+    (function tick(t) {
+      const p = Math.min(1, (t - start) / dur), pt = mp.getPointAtLength(p * len);
       dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
-      if (p >= 1) dot.style.opacity = '0';
-      else requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-
-    clearTimeout(svg._zoomTimer);
-    svg._zoomTimer = setTimeout(() => {
-      group.style.transform = 'translate(0px,0px) scale(1)';
-      svg.classList.add('zoomed-out');
-    }, dur + 500);
+      if (p >= 1) dot.style.opacity = '0'; else requestAnimationFrame(tick);
+    })(start);
 
     if (caption) {
-      const label = model === (MODELS && MODELS.diabetes) ? 'riesgo de diabetes tipo 2' : 'riesgo de no renovación';
-      caption.textContent = '→ Random Forest real (' + trees.length + ' árboles) — se resalta el camino que tomó el árbol #' + (heroIdx + 1) + ' para ' + label + '; luego se aleja la vista para ver el resto del bosque votando.';
+      caption.textContent = '→ Random Forest real: a la izquierda, el camino que sigue un árbol con los datos de esta persona; a la derecha, lo que vota cada uno de los ' + trees.length + ' árboles para ' + (isDiab ? 'riesgo de diabetes tipo 2' : 'riesgo de no renovación') + '.';
     }
   }
   function computeRisk() {
