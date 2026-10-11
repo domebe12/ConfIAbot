@@ -687,6 +687,24 @@
     flow.busy = true;
     chatBody.querySelectorAll('.opt-card.pick').forEach((c) => { c.classList.remove('pick'); c.disabled = true; if (c.dataset.id === r.p.id) c.classList.add('best'); });
     if (state.lastIntent) { state.lastIntent.picked = r.p.id; }
+    const pos = flow.ranked.indexOf(r) + 1;
+    const bld = '<svg viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="rcSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe3fb"/><stop offset="1" stop-color="#eaf6ff"/></linearGradient></defs><rect width="320" height="120" fill="url(#rcSky)"/><rect x="40" y="38" width="150" height="82" rx="4" fill="#fff" stroke="#c4d9ec"/><rect x="170" y="22" width="110" height="98" rx="4" fill="#f4f9fe" stroke="#c4d9ec"/>' +
+      Array.from({ length: 12 }, (_, i) => '<rect x="' + (52 + (i % 6) * 22) + '" y="' + (50 + Math.floor(i / 6) * 26) + '" width="14" height="14" rx="2" fill="#7fb8e6"/>').join('') +
+      Array.from({ length: 12 }, (_, i) => '<rect x="' + (182 + (i % 4) * 24) + '" y="' + (34 + Math.floor(i / 4) * 26) + '" width="14" height="14" rx="2" fill="#7fb8e6"/>').join('') +
+      '<rect x="228" y="92" width="26" height="28" fill="#0b63ce"/><circle cx="236" cy="60" r="0" fill="none"/><rect x="95" y="100" width="40" height="20" fill="#0b63ce"/><text x="115" y="114" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">✚</text></svg>';
+    const why = [
+      pos === 1 ? 'Mejor puntaje de tus 3 opciones: ' + r.score + '/100' : 'Puesto ' + pos + ' de 3 (' + r.score + '/100) por la urgencia de tu caso',
+      'Dentro de la cobertura de tu plan · ' + r.p.covTxt.toLowerCase(),
+      r.p.urg >= 0.9 ? 'Atiende emergencias pediátricas las 24 horas' : 'Tiene pediatra de turno para emergencias',
+      'Espera aproximada de ' + r.p.wait + ' min · a ' + r.p.eta + ' de tu ubicación',
+    ];
+    addRich('<div class="res-card"><div class="res-head"><b>Resultado</b><small>' + (pos === 1 ? 'Mejor opción para tu hijo' : 'La opción que elegiste') + '</small></div>' +
+      '<div class="res-photo">' + bld + '<span class="res-badge">' + (pos === 1 ? '✔ Recomendado' : '✔ Tu elección') + '</span></div>' +
+      '<div class="res-name">' + r.p.name + '</div><div class="res-sub">' + r.p.sub.split(' · ')[0] + '</div>' +
+      '<div class="res-tiles"><div><span>🕒</span><b>24/7</b><small>Atención continua</small></div><div><span>🛡️</span><b>Dentro</b><small>de cobertura</small></div><div><span>📍</span><b>A ' + r.p.eta + '</b><small>de tu ubicación</small></div></div>' +
+      '<div class="res-why"><b>¿Por qué esta opción?</b>' + why.map((w) => '<div>✔ ' + w + '</div>').join('') + '</div></div>');
+    await wait(700);
+    if (!alive(tk)) return;
     if (!await say('Perfecto, ' + PERSONA.first + '. Avisé a ' + r.p.name + ' que vas en camino con tu hijo. Lleva tu cédula y tu carné digital: tu plan cubre la atención. Mañana te escribo para saber cómo sigue. 💙', 900)) return;
     flow.done = true; flow.busy = false;
   }

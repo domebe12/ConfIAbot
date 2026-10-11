@@ -855,3 +855,15 @@ main#app{ position:relative; z-index:1; }
 @keyframes mlfPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
 @media (max-width:900px){ .mlf-grid{ grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce){ .mlf-in,.mlf-q,.mlf-ans,.mlf-net,.mlf-result{ animation-duration:.01s !important; animation-delay:0s !important; } .mlf-edge.on{ animation-duration:.01s !important; animation-delay:0s !important; } }
+
+/* tarjeta de resultado en el chat */
+.res-card{ background:#fff; border:1.5px solid var(--border-strong); border-radius:16px; padding:12px; width:100%; animation:bubbleIn .5s ease; box-shadow:0 14px 28px -20px rgba(11,37,69,.5); }
+.res-head b{ font-family:var(--font-display); font-size:14px; display:block; } .res-head small{ font-size:11px; color:var(--muted); }
+.res-photo{ position:relative; border-radius:12px; overflow:hidden; margin:9px 0 8px; height:96px; } .res-photo svg{ width:100%; height:100%; display:block; }
+.res-badge{ position:absolute; top:7px; right:7px; background:#18a85a; color:#fff; font-size:10px; font-weight:800; padding:3px 9px; border-radius:999px; }
+.res-name{ font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--ink); } .res-sub{ font-size:12px; color:var(--accent); font-weight:600; margin-bottom:9px; }
+.res-tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:9px; }
+.res-tiles div{ background:#f1f7fd; border:1px solid var(--border); border-radius:10px; padding:7px 4px; text-align:center; }
+.res-tiles span{ font-size:14px; display:block; } .res-tiles b{ display:block; font-size:11.5px; color:var(--ink); } .res-tiles small{ font-size:9.5px; color:var(--muted); }
+.res-why{ background:#f6fafe; border-radius:10px; padding:9px 10px; font-size:11.5px; color:var(--ink-soft); }
+.res-why b{ display:block; font-size:12px; color:var(--ink); margin-bottom:4px; } .res-why div{ margin:3px 0; line-height:1.3; }
