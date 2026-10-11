@@ -1051,6 +1051,7 @@
     const NL = NET_LABELS[state.lastIntent ? state.lastIntent.flow : 'default'];
     INPUT_LABELS = NL.in; OUTPUT_LABELS = NL.out;
     $('decisionCard').hidden = true;
+    paintMlFlow(state.lastIntent, state.risk || fallbackRisk());
     buildNetLayout();
     btnGoCliente.disabled = true;
     netSettled = false;
@@ -1374,6 +1375,89 @@
     const ca = $('clientAvatar'); ca.textContent = P.clientInitials;
     setText('clientName', P.clientName); setText('clientKicker', P.clientKicker); setText('clientEmptyName', P.clientName);
     clientSearch.placeholder = 'Buscar afiliado por nombre…';
+  }
+
+
+  // ---------------- Flujo ML animado: entrada → decisiones → red → resultado ----------------
+  function mlFlowData(intent, risk) {
+    const msg = state.history.length ? state.history[0].msg.split(' · ')[0] : '';
+    if (intent.flow === 'fiebre') {
+      const d = intent.data, best = intent.ranked[0];
+      const edad = { lt2: 'Menos de 2 años', '2a5': '2 a 5 años', '6a12': '6 a 12 años', '13a17': '13 a 17 años' }[d.edad];
+      return {
+        title: 'Así decide ConfIAbot: del mensaje a la mejor opción',
+        entrada: [['💬', 'Conversación del afiliado', msg], ['🧒', 'Edad del paciente', edad], ['📍', 'Ubicación del afiliado', 'Valle de Tumbaco'], ['🛡️', 'Cobertura del afiliado', PERSONAS.afiliado.foot]],
+        decisiones: [
+          ['⚠️', '¿Es una emergencia?', intent.level === 'alta' ? 'Sí' : intent.level === 'media' ? 'Conviene hoy' : 'No', intent.level === 'alta'],
+          ['🧑‍⚕️', '¿Requiere atención pediátrica?', 'Sí', false],
+          ['🏥', '¿Qué prestadores tienen capacidad de atenderlo?', intent.ranked.length + ' con cupo', false],
+          ['💲', '¿Cuál es la opción más conveniente?', best.score + '/100', false],
+          ['🧠', 'Evaluación de prestadores', 'Ranking listo', false],
+        ],
+        nodes: intent.ranked.map((r) => r.p.name.replace('Hospital de los ', 'H. de los ').replace('Clínica Pediátrica ', 'Clín. Ped. ').replace('Centro Médico ', 'C. M. ')),
+        netTitle: 'Red de prestadores', netSub: 'cerca de Tumbaco',
+        result: { name: best.p.name, sub: best.p.sub, chips: ['📍 ' + String(best.p.dist).replace('.', ',') + ' km · ' + best.p.eta, '⏱ Espera ~' + best.p.wait + ' min', '✓ ' + best.p.covTxt],
+          why: ['Puntaje más alto: ' + best.score + '/100', 'Dentro de la cobertura de tu plan', best.p.urg >= 1 ? 'Urgencias pediátricas las 24 horas' : 'Atención de emergencias disponible', 'Esperas y cercanía comparadas con los otros 2'], score: best.score, scoreLbl: 'de 100 · mejor opción' },
+        steps: ['Datos', 'Decisiones', 'Red de prestadores', '★ Mejor opción'],
+      };
+    }
+    const r = intent.reimb;
+    return {
+      title: 'Así decide ConfIAbot: del mensaje al estado del trámite',
+      entrada: [['💬', 'Conversación del bróker', msg], ['👤', 'Afiliado consultado', 'Juan Pérez'], ['🧾', 'Trámite', 'Reembolso #' + r.id + ' · ' + r.short], ['📅', 'Recibido', r.recv]],
+      decisiones: [
+        ['📄', '¿Está completo el trámite?', 'Sí', false],
+        ['⏱️', '¿Cuánto tiempo lleva en el sistema?', intent.hours + ' h', intent.hours >= 48],
+        ['🧑‍💼', '¿Qué ejecutivos pueden liquidarlo?', '3 disponibles', false],
+        ['📆', '¿Cuándo habrá respuesta?', '≤ ' + r.eta, false],
+        ['🧠', 'Evaluación de ejecutivos', 'Asignado', false],
+      ],
+      nodes: ['Ejecutivo A', 'Ejecutivo B', 'Ejecutivo C'],
+      netTitle: 'Ejecutivos de liquidaciones', netSub: 'asignación automática',
+      result: { name: 'Estado: ' + r.status, sub: 'Reembolso #' + r.id + ' · ' + r.short, chips: ['📅 Recibido ' + r.recv, '⏱ ' + intent.hours + ' h en el sistema', '📬 Respuesta ≤ ' + r.eta],
+        why: ['Trámite completo, sin papeles faltantes', 'Se asigna a un ejecutivo de liquidaciones', 'Respuesta dentro del plazo prometido', 'Se avisa al bróker apenas cambie el estado'], score: r.stage + 1, scoreLbl: 'de 5 etapas del recorrido' },
+      steps: ['Datos', 'Decisiones', 'Ejecutivos', '★ Respuesta'],
+    };
+  }
+  function paintMlFlow(intent, risk) {
+    const box = $('mlFlow');
+    if (!intent) { box.hidden = true; box.innerHTML = ''; return; }
+    const f = mlFlowData(intent, risk);
+    const t = (s) => s.toFixed(2) + 's';
+    const nodeXY = [[70, 52], [232, 72], [150, 218]];
+    const decor = [[24, 130], [276, 130], [60, 205], [250, 215], [150, 28], [100, 160], [200, 170]];
+    const best = 0;
+    let svg = '<svg viewBox="0 0 300 250" role="img" aria-label="' + f.netTitle + '">';
+    decor.forEach((d, i) => { const n = nodeXY[i % 3]; svg += '<line class="mlf-edge" x1="' + d[0] + '" y1="' + d[1] + '" x2="' + n[0] + '" y2="' + n[1] + '"/>'; });
+    nodeXY.forEach((n, i) => { svg += '<line class="mlf-edge' + (i === best ? ' on' : '') + '" x1="150" y1="130" x2="' + n[0] + '" y2="' + n[1] + '" style="animation-delay:' + t(4.6 + i * 0.1) + '"/>'; });
+    decor.forEach((d) => { svg += '<circle class="mlf-node" cx="' + d[0] + '" cy="' + d[1] + '" r="5"/>'; });
+    nodeXY.forEach((n, i) => { svg += '<circle class="mlf-node' + (i === best ? ' on' : '') + '" cx="' + n[0] + '" cy="' + n[1] + '" r="' + (i === best ? 11 : 8) + '"/>'; });
+    svg += '<circle class="mlf-node hub" cx="150" cy="130" r="16"/><text x="150" y="134" text-anchor="middle" font-size="12" fill="#fff">🧠</text>';
+    nodeXY.forEach((n, i) => {
+      const left = n[0] < 150 || (n[0] === 150 && false);
+      const anchor = n[0] === 150 ? 'middle' : n[0] < 150 ? 'start' : 'end';
+      const x = n[0] === 150 ? 150 : n[0] < 150 ? 8 : 292;
+      const y = n[0] === 150 ? n[1] + 24 : n[1] - 16;
+      svg += '<text class="mlf-lbl' + (i === best ? ' best' : '') + '" x="' + x + '" y="' + y + '" text-anchor="' + anchor + '">' + f.nodes[i] + '</text>';
+    });
+    svg += '</svg>';
+    box.innerHTML =
+      '<div class="mlf-title">' + f.title + '</div><div class="mlf-sub">Entrada de datos → decisiones paso a paso → ' + f.netTitle.toLowerCase() + ' → resultado. Todo con los datos de esta conversación.</div>' +
+      '<div class="mlf-grid">' +
+      '<div class="mlf-col"><div class="mlf-head"><span class="mlf-num">1</span><div><b>Entrada</b><small>Información recibida por ConfIAbot</small></div></div>' +
+      f.entrada.map((e, i) => '<div class="mlf-in" style="animation-delay:' + t(0.2 + i * 0.35) + '"><span class="ic">' + e[0] + '</span><div><b>' + e[1] + '</b><small>' + e[2] + '</small></div></div>').join('') + '</div>' +
+      '<div class="mlf-col"><div class="mlf-head"><span class="mlf-num">2</span><div><b>Decisiones</b><small>Análisis inteligente, paso a paso</small></div></div>' +
+      f.decisiones.map((q, i) => '<div class="mlf-q" style="animation-delay:' + t(1.7 + i * 0.5) + '"><span class="ic">' + q[0] + '</span><span class="t">' + q[1] + '</span>' +
+        '<span class="mlf-think" style="animation-delay:' + t(1.9 + i * 0.5) + '">…</span><span class="mlf-ans' + (q[3] ? ' hot' : '') + '" style="animation-delay:' + t(2.3 + i * 0.5) + '">' + q[2] + '</span></div>').join('') +
+      '<div class="mlf-net" style="animation-delay:' + t(4.4) + '"><div class="mlf-sub" style="margin:4px 0 0;text-align:center">' + f.netTitle + ' · ' + f.netSub + '</div>' + svg + '</div></div>' +
+      '<div class="mlf-col mlf-result" style="animation-delay:' + t(5.6) + '"><div class="mlf-head"><span class="mlf-num">3</span><div><b>Resultado</b><small>' + (intent.flow === 'fiebre' ? 'Mejor opción para el afiliado' : 'Respuesta para el bróker') + '</small></div></div>' +
+      '<span class="mlf-badge">' + (intent.flow === 'fiebre' ? 'Recomendado' : 'Resuelto') + '</span><div class="mlf-rname">' + f.result.name + '</div><div class="mlf-rsub">' + f.result.sub + '</div>' +
+      '<div class="mlf-chips">' + f.result.chips.map((c) => '<span>' + c + '</span>').join('') + '</div>' +
+      '<div class="mlf-score">' + f.result.score + '</div><div class="mlf-sub" style="margin-bottom:10px">' + f.result.scoreLbl + '</div>' +
+      '<div class="mlf-why"><b>¿Por qué esta opción?</b>' + f.result.why.map((w) => '<div>' + w + '</div>').join('') + '</div></div>' +
+      '</div>' +
+      '<div class="mlf-steps">' + f.steps.map((x) => '<span>' + x + '</span>').join('') + '</div>';
+    box.hidden = false;
   }
 
   // ---------------- Decisión del motor (Procesamiento) ----------------
