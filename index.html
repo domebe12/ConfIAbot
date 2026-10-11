@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261005e">
+<link rel="stylesheet" href="style.css?v=20261011c">
 </head>
 <body class="pre-portal">
 
@@ -23,6 +23,11 @@
       <h1>ConfIAbot</h1>
     </div>
   </div>
+  <div class="persona-chip" id="personaChip" hidden>
+    <span class="avatar avatar--sm" id="personaAvatar">DC</span>
+    <div><b id="personaName">Daniel Chacón</b><small id="personaRole">Portal afiliado</small></div>
+    <button class="persona-switch" id="btnSwitchPortal" type="button" title="Volver a elegir portal">↺ Cambiar portal</button>
+  </div>
   <nav class="tabs-nav" id="tabsNav">
     <button class="tab-btn active" data-view="inicio" type="button">Inicio</button>
     <button class="tab-btn" data-view="chat" type="button">Chat</button>
@@ -34,22 +39,37 @@
 
 <main id="app">
 
-  <!-- ===================== BIENVENIDA (contexto) ===================== -->
+  <!-- ===================== BIENVENIDA ===================== -->
   <section class="view active" data-view="bienvenida">
     <div class="view-inner center-inner welcome-inner">
-      <img class="mascot-img mascot-img--sm welcome-badge" src="assets/mascot-avatar.png" alt="ConfIAbot">
+      <img class="mascot-img welcome-badge welcome-badge--big" src="assets/mascot-hero.png" alt="ConfIAbot">
       <div class="eyebrow">Simulación interactiva · Shark Tank Confiamed</div>
-      <h2 class="hero-title">Vas a vivir la experiencia de una afiliada real</h2>
-      <p class="hero-sub">Antes de empezar, este es el contexto: María es afiliada de Confiamed desde hace <b>6 años</b>, tiene el <b>Plan Oro</b> y está a punto de entrar a su portal para resolver una consulta con ConfIAbot. Vas a ver, paso a paso, todo lo que pasa detrás de escena — desde que escribe su mensaje hasta que el modelo predictivo genera una recomendación real para su caso.</p>
-      <div class="context-card">
-        <img class="context-photo" src="assets/client-photo.png" alt="María Fernández López">
-        <div>
-          <b>María Fernández López</b>
-          <small>Cédula 1102567412 · 45 años · Femenino</small>
-          <div class="id-badges"><span class="status-pill">● Activa</span><span class="status-pill plan">Plan Oro</span><span class="status-pill plan">Antigüedad 6 años</span></div>
-        </div>
+      <h2 class="hero-title">Mira cómo ConfIAbot responde y aprende en tiempo real</h2>
+      <p class="hero-sub">Vas a vivir dos situaciones reales: la de un <b>afiliado</b> que necesita ayuda con urgencia, y la de un <b>bróker</b> que consulta un trámite. En cada una verás, paso a paso, lo que pasa detrás de escena: cómo se guarda el dato, cómo lo analiza el modelo y qué decisión toma.</p>
+      <button class="btn primary big" id="btnStart" type="button">Comenzar →</button>
+    </div>
+  </section>
+
+  <!-- ===================== SELECTOR DE PORTAL ===================== -->
+  <section class="view" data-view="selector">
+    <div class="view-inner center-inner selector-inner">
+      <div class="eyebrow">Paso 1 de 2</div>
+      <h2 class="hero-title">¿Desde qué portal quieres entrar?</h2>
+      <p class="hero-sub">Elige quién va a hacer la consulta. Puedes volver y probar el otro después.</p>
+      <div class="role-grid">
+        <button class="role-card" id="roleAfiliado" type="button" data-role="afiliado">
+          <span class="role-ic">👨‍👧</span>
+          <b>Portal afiliado</b>
+          <small>Entras como <b>Daniel Chacón</b>, afiliado Plan Oro</small>
+          <span class="role-go">Entrar →</span>
+        </button>
+        <button class="role-card" id="roleBroker" type="button" data-role="broker">
+          <span class="role-ic">🧑‍💼</span>
+          <b>Portal bróker</b>
+          <small>Entras como <b>Andrea Salazar</b>, bróker de Confiamed</small>
+          <span class="role-go">Entrar →</span>
+        </button>
       </div>
-      <button class="btn primary big" id="btnEnterPortal" type="button">Entrar al portal de afiliados →</button>
     </div>
   </section>
 
@@ -58,19 +78,11 @@
     <div class="view-inner wide-inner">
       <div class="portal-mock">
         <aside class="portal-side">
-          <div class="portal-logo"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestro prioridad</small></div></div>
-          <ul class="portal-nav">
-            <li class="active">🏠 Inicio</li>
-            <li>📄 Mis solicitudes</li>
-            <li>✅ Autorizaciones</li>
-            <li>💳 Reembolsos</li>
-            <li>🩺 Citas médicas</li>
-            <li>📁 Documentos</li>
-            <li>⚙️ Configuración</li>
-          </ul>
+          <div class="portal-logo"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small id="pTagline">Portal afiliado</small></div></div>
+          <ul class="portal-nav" id="pNav"></ul>
           <div class="portal-side-foot">
-            <img class="portal-user-ph" src="assets/client-photo.png" alt="">
-            <div><b>María Fernández</b><small>Plan Oro</small></div>
+            <span class="avatar avatar--sm" id="pFootAvatar">DC</span>
+            <div><b id="pFootName">Daniel Chacón</b><small id="pFootSub">Plan Oro</small></div>
           </div>
         </aside>
         <div class="portal-main">
@@ -78,27 +90,25 @@
             <div class="portal-search"><span class="search-ic">🔍</span><input type="text" placeholder="Buscar en el portal…" disabled></div>
             <div class="portal-actions">
               <span class="portal-bell">🔔<span class="portal-bell-dot"></span></span>
-              <img class="portal-avatar" src="assets/client-photo.png" alt="María Fernández López">
+              <span class="avatar avatar--sm" id="pTopAvatar">DC</span>
             </div>
           </div>
           <div class="portal-greet">
-            <h2>Hola, María</h2>
-            <p>¿En qué podemos ayudarte hoy?</p>
+            <h2 id="pGreet">Hola, Daniel</h2>
+            <p id="pGreetSub">¿En qué podemos ayudarte hoy?</p>
           </div>
-          <div class="portal-quickstats">
-            <div class="qstat">
-              <b>Plan Oro</b><small>Tu cobertura activa</small>
+          <div class="portal-quickstats" id="pStats">
+            <div class="qstat"><b></b><small></small>
               <svg class="qstat-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
                 <defs><linearGradient id="sparkGrad1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="var(--accent-2)" stop-opacity="0.35"/>
+                  <stop offset="0%" stop-color="var(--accent-2)" stop-opacity="0.3"/>
                   <stop offset="100%" stop-color="var(--accent-2)" stop-opacity="0"/>
                 </linearGradient></defs>
                 <path d="M0,24 L14,20 L28,23 L42,14 L56,17 L70,8 L84,11 L100,4 L100,32 L0,32 Z" fill="url(#sparkGrad1)"/>
                 <path d="M0,24 L14,20 L28,23 L42,14 L56,17 L70,8 L84,11 L100,4" fill="none" stroke="var(--accent-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <div class="qstat">
-              <b>6 años</b><small>Como afiliada</small>
+            <div class="qstat"><b></b><small></small>
               <svg class="qstat-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
                 <defs><linearGradient id="sparkGrad2" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3"/>
@@ -108,8 +118,7 @@
                 <path d="M0,20 L14,22 L28,16 L42,19 L56,10 L70,13 L84,6 L100,9" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <div class="qstat">
-              <b>0</b><small>Solicitudes pendientes</small>
+            <div class="qstat"><b></b><small></small>
               <svg class="qstat-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
                 <defs><linearGradient id="sparkGrad3" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="#188a4a" stop-opacity="0.3"/>
@@ -120,14 +129,9 @@
               </svg>
             </div>
           </div>
-          <div class="portal-cards">
-            <div class="portal-card"><span class="pc-ic">✅</span><b>Autorizaciones</b><small>Solicita y da seguimiento</small></div>
-            <div class="portal-card"><span class="pc-ic">🩺</span><b>Citas médicas</b><small>Agenda tu cita</small></div>
-            <div class="portal-card"><span class="pc-ic">💳</span><b>Reembolsos</b><small>Consulta tu estado</small></div>
-            <div class="portal-card highlight" id="btnOpenChat" role="button" tabindex="0"><span class="pc-ic">🤖</span><b>ConfIAbot</b><small>Tu asistente inteligente</small></div>
-          </div>
-          <p class="hero-sub">Pregúntame lo que necesites — citas, reembolsos, recetas o autorizaciones — y te muestro exactamente qué pasa detrás de escena: cómo guardo tu mensaje, cómo lo procesa el modelo, y qué aprende sobre tu perfil.</p>
-          <div class="hero-hint">💡 Prueba a mencionar algo como "tengo 4 citas por mi glucosa" o "ya es la tercera vez que me quejo" para ver alertas especiales.</div>
+          <div class="portal-cards" id="pCards"></div>
+          <p class="hero-sub" id="pSub"></p>
+          <div class="hero-hint" id="pHint"></div>
         </div>
       </div>
     </div>
@@ -139,27 +143,26 @@
       <div class="chat-workspace">
         <aside class="chat-side">
           <div class="chat-side-card">
-            <img class="context-photo" src="assets/client-photo.png" alt="María Fernández López">
+            <span class="avatar avatar--md" id="cAvatar">DC</span>
             <div>
-              <b>María Fernández López</b>
-              <small>Plan Oro · Antigüedad 6 años</small>
+              <b id="cName">Daniel Chacón</b>
+              <small id="cSub">Portal afiliado</small>
             </div>
           </div>
-          <div class="chat-tips">
-            <b>Prueba a preguntar sobre…</b>
-            <ul>
-              <li>🩺 Una cita médica</li>
-              <li>💳 El estado de un reembolso</li>
-              <li>💊 Una receta o medicamento</li>
-              <li>✅ Una autorización</li>
-            </ul>
-          </div>
-          <div class="chat-tips">
-            <b>💡 Casos especiales</b>
-            <ul>
-              <li>Menciona tu glucosa varias veces</li>
-              <li>Repite una queja del servicio</li>
-            </ul>
+          <div class="behind-card" id="behindCard">
+            <div class="behind-head"><span class="behind-live">● EN VIVO</span><b>Detrás de escena</b></div>
+            <p class="behind-sub">Esto es lo que hace ConfIAbot mientras conversas.</p>
+            <ol class="behind-steps" id="behindSteps">
+              <li data-step="1"><span class="bs-dot">1</span><div><b>Recibe el mensaje</b><small>Llega por el canal del portal</small><div class="bs-detail"></div></div></li>
+              <li data-step="2"><span class="bs-dot">2</span><div><b>Entiende lo que necesitas</b><small>Extrae los datos clave</small><div class="bs-detail bs-chips"></div></div></li>
+              <li data-step="3"><span class="bs-dot">3</span><div><b>Guarda el dato</b><small>Base de datos única</small><div class="bs-detail"></div></div></li>
+              <li data-step="4"><span class="bs-dot">4</span><div><b>El modelo analiza</b><small>Reglas + machine learning</small><div class="bs-detail"></div></div></li>
+              <li data-step="5"><span class="bs-dot">5</span><div><b>Decide y responde</b><small>La mejor respuesta para el caso</small><div class="bs-detail"></div></div></li>
+            </ol>
+            <div class="behind-links" id="behindLinks" hidden>
+              <button class="btn" type="button" data-go="almacenamiento">Ver cómo se guarda →</button>
+              <button class="btn primary" type="button" data-go="procesamiento">Ver el modelo por dentro →</button>
+            </div>
           </div>
         </aside>
         <div class="device standalone">
@@ -170,12 +173,12 @@
               <div class="app-bar-text"><div class="app-name">ConfIA BOT</div><div class="app-status" id="chatStatus">🟢 En línea</div></div>
             </div>
             <div class="chat-body" id="chatBody">
-              <div class="bubble bot">¡Hola! Soy ConfIAbot 👋 Tu asistente inteligente dentro de Confiamed. ¿Qué necesitas resolver hoy?</div>
+              
             </div>
             <form class="chat-input" id="chatForm">
               <input type="file" id="chatFileInput" hidden accept="image/*,.pdf,.doc,.docx">
               <button class="chat-attach" id="chatAttachBtn" type="button" aria-label="Adjuntar archivo">📎</button>
-              <input id="chatInput" type="text" autocomplete="off" placeholder="Escribe tu mensaje…" maxlength="180">
+              <input id="chatInput" type="text" autocomplete="off" placeholder="Escribe tu mensaje…" maxlength="200">
               <button class="chat-send" type="submit" aria-label="Enviar"></button>
             </form>
           </div>
@@ -343,6 +346,11 @@
         </div>
       </div>
 
+      <div class="pipe-box dark-card decision-card" id="decisionCard" hidden>
+        <b class="pipe-box-title" id="decisionTitle">Decisión del motor</b>
+        <div id="decisionBody"></div>
+      </div>
+
       <div class="reasoning-box dark-card" id="reasoningBox">
         <span class="reasoning-ic">🧠</span>
         <div><b>Razonamiento del modelo</b><p id="reasoningText">Analizando…</p></div>
@@ -362,23 +370,23 @@
       <div class="client-search-wrap dark-card">
         <div class="client-search">
           <span class="search-ic">🔍</span>
-          <input id="clientSearch" type="text" autocomplete="off" placeholder="Buscar afiliado por nombre o cédula…">
+          <input id="clientSearch" type="text" autocomplete="off" placeholder="Buscar afiliado por nombre…">
         </div>
         <div class="search-suggestions" id="searchSuggestions"></div>
       </div>
 
       <div class="client-empty" id="clientEmpty">
         <span class="client-empty-ic">🗂️</span>
-        <p>Busca a <b>María Fernández López</b> (o su cédula) arriba para abrir su ficha — es el caso que acabas de trabajar en el chat.</p>
+        <p>Busca a <b id="clientEmptyName">Daniel Chacón</b> arriba para abrir su ficha — es el caso que acabas de trabajar en el chat.</p>
       </div>
 
       <div id="clientResults" hidden>
       <div class="client-card dark-card" id="clientCard">
         <div class="client-head">
-          <img class="client-photo" src="assets/client-photo.png" alt="Foto de María Fernández López">
+          <span class="avatar avatar--lg" id="clientAvatar">DC</span>
           <div class="client-id">
-            <div class="panel-title">María Fernández López</div>
-            <div class="panel-kicker">Cédula 1102567412 · 45 años · Femenino · Plan Oro · Antigüedad 6 años</div>
+            <div class="panel-title" id="clientName">Daniel Chacón</div>
+            <div class="panel-kicker" id="clientKicker">Afiliado · Plan Oro</div>
             <div class="id-badges"><span class="status-pill">● Activa</span></div>
           </div>
         </div>
@@ -427,10 +435,10 @@
             </svg>
 
             <ul class="profile360-legend" id="profile360Legend">
-              <li><span class="p360-dot p360-c1"></span><b>Adherencia</b> alta a tratamiento</li>
-              <li><span class="p360-dot p360-c2"></span><b>Hipertensión</b> controlada</li>
-              <li><span class="p360-dot p360-c3"></span><span id="p360DiabText"><b>Diabetes tipo 2</b> en seguimiento</span></li>
-              <li><span class="p360-dot p360-c4"></span><span id="p360CitasText"><b>3 citas</b> en 6 meses</span></li>
+              <li><span class="p360-dot p360-c1"></span><b>Adherencia</b> alta a controles</li>
+              <li><span class="p360-dot p360-c2"></span><b>Chequeo anual</b> al día</li>
+              <li><span class="p360-dot p360-c3"></span><span id="p360DiabText"><b>Riesgo metabólico</b> bajo</span></li>
+              <li><span class="p360-dot p360-c4"></span><span id="p360CitasText"><b>1 interacción</b> reciente</span></li>
             </ul>
           </div>
 
@@ -508,7 +516,7 @@
         </div>
       </div>
 
-      <div class="closing-mark"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestro prioridad</small></div></div>
+      <div class="closing-mark"><span class="portal-logo-ic">✚</span><div><b>Confiamed</b><small>Tu salud, nuestra prioridad</small></div></div>
       </div>
     </div>
   </section>
@@ -524,6 +532,6 @@
   <img src="assets/mascot-avatar.png" alt="">
 </button>
 
-<script src="script.js?v=20261005e"></script>
+<script src="script.js?v=20261011c"></script>
 </body>
 </html>

@@ -1,85 +1,94 @@
 (() => {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---------------- Intent engine ----------------
-  const INTENTS = [
-    {
-      id: 'glucosa',
-      test: (t) => /gluco|az[uú]car|diabet/.test(t),
-      label: 'Riesgo de salud (glucosa)',
-      followUp: 'Entiendo, gracias por contarme. ¿Hace cuánto notas esto y ya lo has consultado con algún médico?',
-      secondUp: 'Gracias. ¿Quieres que te agende directamente un control con endocrinología, o prefieres que primero te enviemos información de nutrición y manejo de glucosa?',
-      botReply: 'Veo que mencionas temas de glucosa. Ya registré esto junto a tu historial reciente — cuentas con varias consultas relacionadas. Te recomiendo agendar un control con endocrinología cuanto antes.',
-      reasoning: 'Se detectan consultas relacionadas a glucosa, combinadas con la edad del afiliado. El modelo activa la rama de "Señales de salud".',
-      treePath: 'salud-alto',
+
+  // ---------------- Utilidades ----------------
+  const $ = (id) => document.getElementById(id);
+  const wait = (ms) => new Promise((r) => setTimeout(r, reduced ? 30 : ms));
+  const DEMO_TODAY = new Date(2026, 9, 11); // 11/10/2026 (fecha de la demo)
+  const hhmm = () => new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+
+  // ---------------- Personas (portales) ----------------
+  // Nombres, planes, cifras de portal y el resto de personajes son de ejemplo.
+  const PERSONAS = {
+    afiliado: {
+      key: 'afiliado', name: 'Daniel Chacón', first: 'Daniel', initials: 'DC', broker: false,
+      role: 'Portal afiliado · Plan Oro', tagline: 'Portal afiliado', foot: 'Plan Oro',
+      canal: 'App móvil', clientId: 'daniel', clientName: 'Daniel Chacón', clientInitials: 'DC', clientKicker: 'Afiliado · Plan Oro',
+      nav: ['🏠 Inicio', '📄 Mis solicitudes', '🩺 Citas médicas', '💳 Reembolsos', '📁 Documentos', '⚙️ Configuración'],
+      stats: [['Activa', 'Tu cobertura'], ['2', 'Citas este año'], ['0', 'Trámites pendientes']],
+      cards: [
+        { ic: '🩺', b: 'Citas médicas', s: 'Agenda tu cita' }, { ic: '💊', b: 'Recetas', s: 'Tus medicinas' },
+        { ic: '💳', b: 'Reembolsos', s: 'Consulta tu estado' }, { ic: '🤖', b: 'ConfIAbot', s: 'Tu asistente inteligente', hl: true },
+      ],
+      greet: 'Hola, Daniel', greetSub: '¿En qué podemos ayudarte hoy?',
+      sub: 'Tu asistente te guía paso a paso, con palabras sencillas.',
+      hint: '💡 Toca “ConfIAbot” y cuéntale que tu hijo tiene fiebre: te dice a dónde llevarlo ahora mismo.',
+      intro: 'Hola Daniel 👋 Soy ConfIAbot, tu asistente de Confiamed. ¿En qué te puedo ayudar hoy?',
+      starter: 'Mi hijo tiene fiebre y no sé a qué doctor llevarlo. ¿Dónde lo pueden atender hoy mismo?',
+      profile: { edad: 38, imc: 25, historial_familiar_diabetes: 0, num_citas_glucosa_6m: 0, num_quejas_2m: 0, tiempo_respuesta_prom_h: 12, nps_score: 8, antiguedad: 6 },
     },
-    {
-      id: 'queja',
-      test: (t) => /quej|reclam|molest|insatisf|mal servicio|p[eé]sim|no.{0,3}resuelv/.test(t),
-      label: 'Riesgo de satisfacción (queja)',
-      followUp: 'Lamento mucho escuchar eso. ¿Podrías contarme brevemente qué pasó, para escalarlo con el equipo correcto?',
-      secondUp: 'Entendido, ya tomé nota. ¿Prefieres que te contactemos por teléfono o por correo para darte seguimiento personalizado?',
-      botReply: 'Lamento que hayas tenido inconvenientes. Registré tu comentario — veo que no es la primera vez, así que lo estoy escalando a nuestro equipo de retención para un seguimiento personalizado.',
-      reasoning: 'Se detectan quejas repetidas. El modelo activa la rama de "Señales de satisfacción".',
-      treePath: 'queja-alto',
+    broker: {
+      key: 'broker', name: 'Andrea Salazar', first: 'Andrea', initials: 'AS', broker: true,
+      role: 'Portal bróker', tagline: 'Portal bróker', foot: 'Bróker Confiamed',
+      canal: 'Portal bróker', clientId: 'juan', clientName: 'Juan Pérez', clientInitials: 'JP', clientKicker: 'Afiliado · a cargo de Andrea Salazar',
+      nav: ['🏠 Inicio', '👥 Mis afiliados', '💳 Reembolsos', '✅ Autorizaciones', '📈 Cotizaciones', '⚙️ Configuración'],
+      stats: [['128', 'Afiliados a cargo'], ['6', 'Trámites activos'], ['3', 'Reembolsos en revisión']],
+      cards: [
+        { ic: '👥', b: 'Mis afiliados', s: 'Consulta y gestiona' }, { ic: '✅', b: 'Autorizaciones', s: 'Solicita y da seguimiento' },
+        { ic: '💳', b: 'Reembolsos', s: 'Estado de tus afiliados' }, { ic: '🤖', b: 'ConfIAbot', s: 'Tu asistente inteligente', hl: true },
+      ],
+      greet: 'Hola, Andrea', greetSub: 'Tus afiliados y trámites, en un solo lugar.',
+      sub: 'Pregúntale a ConfIAbot por cualquier trámite de tus afiliados.',
+      hint: '💡 Toca “ConfIAbot” y consulta el estado de un reembolso de tu afiliado Juan Pérez.',
+      intro: 'Hola Andrea 👋 Soy ConfIAbot para brókers. ¿Qué trámite de tus afiliados quieres consultar?',
+      starter: '¿En qué estado se encuentra el reembolso de mi afiliado Juan Pérez?',
+      profile: { edad: 52, imc: 27, historial_familiar_diabetes: 0, num_citas_glucosa_6m: 0, num_quejas_2m: 0, tiempo_respuesta_prom_h: 12, nps_score: 7, antiguedad: 9 },
     },
-    {
-      id: 'cita', test: (t) => /cita|turno|agendar|consulta m[eé]dica/.test(t),
-      label: 'Consulta de cita médica',
-      followUp: 'Claro que sí, dame un momento para revisar tu agenda. ¿Tienes alguna fecha en mente o prefieres la próxima disponible?',
-      secondUp: 'Perfecto, reviso la próxima disponible. ¿Prefieres que te enviemos el recordatorio por WhatsApp o por correo electrónico?',
-      botReply: 'Tu próxima cita es el 15 de octubre de 2025 a las 10:30 a.m. con el Dr. Andrés López en Clínica SanVida. ¿Quieres que te la recuerde un día antes?',
-      reasoning: 'Consulta puntual sobre citas médicas, sin patrón de riesgo asociado. El modelo sigue la rama de "Señales de salud" con desenlace de seguimiento estándar.',
-      treePath: 'salud-bajo',
-    },
-    {
-      id: 'reembolso', test: (t) => /re?embolso|reintegr|devoluci[oó]n/.test(t),
-      label: 'Solicitud de reembolso',
-      wantsFile: true,
-      followUp: 'Con gusto te ayudo. Adjunta la factura y el comprobante de pago con el ícono 📎 de aquí abajo para continuar.',
-      secondUp: 'Recibido, gracias. ¿Prefieres que te confirmemos por correo o te avisamos aquí mismo cuando esté listo tu reembolso?',
-      botReply: 'Ya inicié tu solicitud de reembolso con el documento que enviaste — te llegará una confirmación por correo en las próximas 24 horas.',
-      reasoning: 'Solicitud administrativa estándar. No se activan señales de riesgo; el modelo la clasifica como interacción informativa normal.',
-      treePath: 'queja-bajo',
-    },
-    {
-      id: 'receta', test: (t) => /receta|medicamento|farmacia|pastilla/.test(t),
-      label: 'Consulta de receta',
-      followUp: 'Claro. ¿Es para retirar una receta que ya tienes activa o necesitas que un médico te emita una nueva?',
-      secondUp: 'Entendido. ¿Quieres que te muestre las farmacias afiliadas más cercanas a ti para retirarla?',
-      botReply: 'Tu receta activa incluye Losartán 50mg — puedes reclamarla en cualquier farmacia afiliada presentando tu cédula. ¿Quieres que te muestre las farmacias más cercanas?',
-      reasoning: 'Consulta puntual sobre medicación, sin patrón de riesgo asociado. Camino de seguimiento estándar dentro de "Señales de salud".',
-      treePath: 'salud-bajo',
-    },
-    {
-      id: 'autorizacion', test: (t) => /autorizaci|procedimiento|cirug[ií]a/.test(t),
-      label: 'Autorización de procedimiento',
-      followUp: 'Perfecto, reviso eso contigo. ¿Es una autorización nueva o le estás dando seguimiento a una que ya enviaste?',
-      secondUp: 'Listo, ya quedó anotado. ¿Quieres recibir el estado de tu autorización por notificación push o por correo electrónico?',
-      botReply: 'Tu solicitud de autorización fue recibida y está en revisión por nuestro equipo médico. El tiempo estimado de respuesta es de 48 horas.',
-      reasoning: 'Solicitud administrativa estándar. Interacción informativa normal, sin señales de riesgo.',
-      treePath: 'queja-bajo',
-    },
+  };
+  let PERSONA = PERSONAS.afiliado;
+
+  // Lugares de atención (red del plan). Distancias, esperas y coberturas: datos de ejemplo.
+  const PROVIDERS = [
+    { id: 'valles', name: 'Hospital de los Valles', sub: 'Urgencias pediátricas · 24 horas', dist: 4.2, eta: '12 min', wait: 15, urg: 1.0, cov: 1.0, covTxt: 'Cubierto al 100%' },
+    { id: 'santalucia', name: 'Clínica Pediátrica Santa Lucía', sub: 'Emergencias pediátricas · 24 horas', dist: 2.8, eta: '8 min', wait: 35, urg: 0.9, cov: 0.9, covTxt: 'Cubierto al 90%' },
+    { id: 'quitonorte', name: 'Centro Médico Quito Norte', sub: 'Emergencias generales · pediatra de turno', dist: 6.5, eta: '18 min', wait: 10, urg: 0.7, cov: 1.0, covTxt: 'Cubierto al 100%' },
   ];
-  const DEFAULT_INTENT = {
-    id: 'general', label: 'Consulta general',
-    followUp: 'Cuéntame un poco más para poder ayudarte mejor — ¿es sobre una cita, un reembolso, una receta o una autorización?',
-    secondUp: 'Perfecto, ya tomé nota de eso. ¿Prefieres que te conecte con un asesor humano o seguimos resolviéndolo por aquí?',
-    botReply: 'Ya quedó registrado en tu perfil. Si necesitas algo puntual sobre una cita, un reembolso, una receta o una autorización, aquí estoy para ayudarte.',
-    reasoning: 'El mensaje no coincide con un patrón de riesgo conocido. El modelo lo clasifica como interacción informativa normal y sigue aprendiendo del historial del afiliado.',
-    treePath: 'queja-bajo',
+  const WEIGHTS = {
+    alta: { urg: 0.45, wait: 0.25, dist: 0.20, cov: 0.10 },
+    media: { urg: 0.35, wait: 0.20, dist: 0.25, cov: 0.20 },
+    baja: { urg: 0.25, wait: 0.20, dist: 0.30, cov: 0.25 },
   };
-  function matchIntent(text) {
-    const t = text.toLowerCase();
-    return INTENTS.find((i) => i.test(t)) || DEFAULT_INTENT;
-  }
-  const BRANCH = {
-    glucosa: 'diabetes', cita: 'diabetes', receta: 'diabetes',
-    queja: 'no_renovacion', reembolso: 'no_renovacion', autorizacion: 'no_renovacion', general: 'no_renovacion',
+  const LEVEL_TXT = { alta: 'Alta', media: 'Media', baja: 'Baja' };
+
+  // Reembolsos activos del afiliado Juan Pérez (ejemplo)
+  const REIMB_STAGES = ['Recibido', 'Revisión', 'Asignado a un ejecutivo', 'Respuesta', 'Pago'];
+  const REIMBS = [
+    { id: '2534', short: 'SIME Imagen', title: 'Tomografía simple', recv: '9/10/2026', date: new Date(2026, 9, 9), stage: 1, status: 'Revisión', eta: '24 horas',
+      pick: 'Deseo consultar sobre el de SIME Imagen · Tomografía simple',
+      msg: 'El Reembolso #2534 SIME Imagen, recibido el 9/10/2026, se encuentra en estado: Revisión. Se está asignando a un ejecutivo de liquidaciones y su respuesta estará en las próximas 24 horas.' },
+    { id: '2519', short: 'Laboratorio clínico', title: 'Exámenes de sangre', recv: '2/10/2026', date: new Date(2026, 9, 2), stage: 3, status: 'Aprobado', eta: '48 horas',
+      pick: 'Deseo consultar sobre el de Laboratorio clínico · Exámenes de sangre',
+      msg: 'El Reembolso #2519 Laboratorio clínico, recibido el 2/10/2026, se encuentra en estado: Aprobado. Ya pasó a pago y se acreditará en las próximas 48 horas.' },
+    { id: '2541', short: 'Consulta traumatología', title: 'Consulta médica', recv: '10/10/2026', date: new Date(2026, 9, 10), stage: 0, status: 'Recibido', eta: '72 horas',
+      pick: 'Deseo consultar sobre el de Consulta de traumatología',
+      msg: 'El Reembolso #2541 Consulta de traumatología, recibido el 10/10/2026, se encuentra en estado: Recibido. Pasa a revisión hoy mismo y tendrá respuesta en las próximas 72 horas.' },
+  ];
+
+  // Salidas de la red neuronal según el flujo
+  const NET_LABELS = {
+    default: { in: ['Texto del mensaje', 'Edad y género', 'Historial de citas', 'Quejas registradas', 'Diagnósticos previos', 'Canal de contacto'],
+      out: ['Riesgo de salud', 'Riesgo de no renovación', 'Seguimiento estándar'] },
+    fiebre: { in: ['Texto del mensaje', 'Edad del niño', 'Temperatura', 'Señales de alarma', 'Plan y cobertura', 'Red y ubicación'],
+      out: ['Ir a urgencias ahora', 'Consulta prioritaria hoy', 'Cuidados en casa + control'] },
+    reembolso: { in: ['Texto del mensaje', 'Tipo de trámite', 'Fecha de recepción', 'Estado actual', 'Historial del afiliado', 'Carga de liquidadores'],
+      out: ['Escalar por demora', 'Seguimiento normal', 'Pago en camino'] },
   };
+
 
   // ---------------- State ----------------
   const state = { messages: 0, alerts: {}, lastIntent: null, pendingRow: null, risk: null, history: [] };
+
 
   // ---------------- Modelo real: Regresión Logística + Random Forest ----------------
   // Entrenados con scikit-learn sobre una base de afiliados sintética (ver
@@ -310,27 +319,25 @@
       renov: { proba: renovP, pct: Math.round(renovP * 100), pctl: percentileOf(MODELS.no_renovacion, renovP), high: renovP >= RENOV_THRESHOLD },
     };
   }
-  function applyIntentToProfile(intent) {
-    if (intent.id === 'glucosa') profile.num_citas_glucosa_6m = Math.min(8, profile.num_citas_glucosa_6m + 1);
-    if (intent.id === 'queja') {
-      profile.num_quejas_2m = Math.min(6, profile.num_quejas_2m + 1);
-      profile.tiempo_respuesta_prom_h = Math.min(72, profile.tiempo_respuesta_prom_h + 6);
-      profile.nps_score = Math.max(1, profile.nps_score - 1.1);
-    }
-  }
-  function outcomeFromRisk(intent, risk) {
-    const branch = BRANCH[intent.id] || 'no_renovacion';
-    if (branch === 'diabetes') return { index: risk.diab.high ? 0 : 2, danger: risk.diab.high };
-    return { index: risk.renov.high ? 1 : 2, danger: risk.renov.high };
-  }
   function plural(n, singular, plural2) { return n + ' ' + (n === 1 ? singular : plural2); }
-  function realStatsLine(intent, risk) {
-    const branch = BRANCH[intent.id] || 'no_renovacion';
-    if (branch === 'diabetes') {
-      return ' Modelo real (regresión logística + random forest): ' + risk.diab.pct + '% de probabilidad de riesgo de diabetes tipo 2 (percentil ' + risk.diab.pctl + ' del segmento, con ' + plural(profile.num_citas_glucosa_6m, 'consulta relacionada', 'consultas relacionadas') + ' a glucosa registrada' + (profile.num_citas_glucosa_6m === 1 ? '' : 's') + ').';
+  // Resultado de la red neuronal según el flujo que se acaba de vivir
+  function outcomeFromIntent(intent, risk) {
+    if (!intent) return { index: 2, danger: false };
+    if (intent.flow === 'fiebre') {
+      const idx = intent.level === 'alta' ? 0 : intent.level === 'media' ? 1 : 2;
+      return { index: idx, danger: intent.level === 'alta' };
     }
-    return ' Modelo real (regresión logística + random forest): ' + risk.renov.pct + '% de probabilidad de no renovación (percentil ' + risk.renov.pctl + ' del segmento, con ' + plural(profile.num_quejas_2m, 'queja registrada', 'quejas registradas') + ').';
+    if (intent.flow === 'reembolso') {
+      const idx = intent.reimb.stage >= 3 ? 2 : (intent.hours > 72 ? 0 : 1);
+      return { index: idx, danger: idx === 0 };
+    }
+    return { index: 2, danger: false };
   }
+  function realStatsLine(intent, risk) {
+    return ' Además, el modelo real (regresión logística + random forest) estima ' + risk.renov.pct +
+      '% de probabilidad de no renovación para ' + PERSONAS[intent.persona].clientName + ' (percentil ' + risk.renov.pctl + ' del segmento).';
+  }
+
   function paintModelMeta() {
     const el = document.getElementById('modelMeta');
     if (!el || !MODELS) return;
@@ -342,41 +349,63 @@
   // ---------------- View switching ----------------
   const views = Array.from(document.querySelectorAll('.view'));
   const tabBtns = Array.from(document.querySelectorAll('.tab-btn'));
+  const chatFab = $('chatFab');
   function showView(name) {
     views.forEach((v) => v.classList.toggle('active', v.dataset.view === name));
     tabBtns.forEach((b) => b.classList.toggle('active', b.dataset.view === name));
-    document.body.classList.toggle('pre-portal', name === 'bienvenida');
+    document.body.classList.toggle('pre-portal', name === 'bienvenida' || name === 'selector');
     if (name === 'almacenamiento') renderPendingRow();
     if (name === 'procesamiento') playNetwork();
     if (name === 'cliente') renderClient();
-    if (name === 'chat') document.getElementById('chatInput').focus();
-    if (chatFab) chatFab.classList.toggle('hide', name === 'bienvenida' || name === 'chat');
+    if (name === 'chat') { ensureChatIntro(); chatInput.focus(); }
+    if (chatFab) chatFab.classList.toggle('hide', name === 'bienvenida' || name === 'selector' || name === 'chat');
+    window.scrollTo(0, 0);
   }
   function unlockTab(name) {
     const b = tabBtns.find((x) => x.dataset.view === name);
     if (b) b.disabled = false;
   }
   tabBtns.forEach((b) => b.addEventListener('click', () => { if (!b.disabled) showView(b.dataset.view); }));
-  document.getElementById('btnEnterPortal').addEventListener('click', () => showView('inicio'));
-  const btnOpenChat = document.getElementById('btnOpenChat');
-  btnOpenChat.addEventListener('click', () => showView('chat'));
-  btnOpenChat.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView('chat'); } });
-  document.getElementById('btnGoProc').addEventListener('click', () => showView('procesamiento'));
-  document.getElementById('btnGoCliente').addEventListener('click', () => showView('cliente'));
-  const chatFab = document.getElementById('chatFab');
+  $('btnStart').addEventListener('click', () => showView('selector'));
+  $('roleAfiliado').addEventListener('click', () => { applyPersona('afiliado'); showView('inicio'); });
+  $('roleBroker').addEventListener('click', () => { applyPersona('broker'); showView('inicio'); });
+  $('btnSwitchPortal').addEventListener('click', () => { runToken++; showView('selector'); });
+  $('btnGoProc').addEventListener('click', () => showView('procesamiento'));
+  $('btnGoCliente').addEventListener('click', () => showView('cliente'));
   if (chatFab) chatFab.addEventListener('click', () => showView('chat'));
+  $('pCards').addEventListener('click', (e) => { if (e.target.closest('.portal-card.highlight')) showView('chat'); });
+  $('pCards').addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.portal-card.highlight')) { e.preventDefault(); showView('chat'); }
+  });
+  $('behindLinks').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]');
+    if (b) showView(b.dataset.go);
+  });
 
-  // ---------------- Chat ----------------
-  const chatBody = document.getElementById('chatBody');
-  const chatForm = document.getElementById('chatForm');
-  const chatInput = document.getElementById('chatInput');
+  // ---------------- Chat: utilidades ----------------
+  const chatBody = $('chatBody');
+  const chatForm = $('chatForm');
+  const chatInput = $('chatInput');
+  const chatAttachBtn = $('chatAttachBtn');
+  const chatFileInput = $('chatFileInput');
+  let flow = null, runToken = 0;
+  const alive = (tk) => tk === runToken;
+  const scrollChat = () => { chatBody.scrollTop = chatBody.scrollHeight; };
 
   function addBubble(text, who) {
     const d = document.createElement('div');
     d.className = 'bubble ' + who;
     d.textContent = text;
     chatBody.appendChild(d);
-    chatBody.scrollTop = chatBody.scrollHeight;
+    scrollChat();
+    return d;
+  }
+  function addRich(html) {
+    const d = document.createElement('div');
+    d.className = 'bubble bot rich';
+    d.innerHTML = html;
+    chatBody.appendChild(d);
+    scrollChat();
     return d;
   }
   function addTyping() {
@@ -384,84 +413,411 @@
     d.className = 'typing-dots';
     d.innerHTML = '<span></span><span></span><span></span>';
     chatBody.appendChild(d);
-    chatBody.scrollTop = chatBody.scrollHeight;
+    scrollChat();
     return d;
   }
+  async function say(text, ms, cls) {
+    const tk = runToken;
+    const t = addTyping();
+    await wait(ms == null ? 800 : ms);
+    t.remove();
+    if (!alive(tk)) return false;
+    addBubble(text, 'bot' + (cls ? ' ' + cls : ''));
+    return true;
+  }
+  function removeChips() { chatBody.querySelectorAll('.chat-chips').forEach((c) => c.remove()); }
+  function addChips(opts) {
+    removeChips();
+    const box = document.createElement('div');
+    box.className = 'chat-chips';
+    opts.forEach((o) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chat-chip' + (o.cls ? ' ' + o.cls : '');
+      b.textContent = o.label;
+      b.addEventListener('click', () => userSays(o.say || o.label, o.v));
+      box.appendChild(b);
+    });
+    chatBody.appendChild(box);
+    scrollChat();
+  }
+  function addStepper(labels) {
+    const el = addRich('<div class="stepper"><div class="stepper-title">ConfIAbot está trabajando…</div><ol>' +
+      labels.map((l) => '<li><span class="st-dot"></span><span>' + l + '</span></li>').join('') + '</ol></div>');
+    const lis = el.querySelectorAll('li');
+    return {
+      set(i, st) {
+        const li = lis[i]; if (!li) return;
+        li.classList.remove('done', 'now');
+        li.classList.add(st);
+        li.querySelector('.st-dot').textContent = st === 'done' ? '✓' : '';
+      },
+      title(t) { el.querySelector('.stepper-title').textContent = t; },
+    };
+  }
+  function addTimeline(stage) {
+    return addRich('<div class="stepper"><div class="stepper-title">Recorrido del reembolso</div><ol>' +
+      REIMB_STAGES.map((s, i) => '<li class="' + (i < stage ? 'done' : i === stage ? 'now' : '') + '"><span class="st-dot">' + (i < stage ? '✓' : '') + '</span><span>' + s +
+        (i === stage ? '<small>Aquí está ahora</small>' : '') + '</span></li>').join('') + '</ol></div>');
+  }
 
-  // Conversación de 3 turnos: el bot pregunta algo puntual, luego profundiza
-  // con una segunda pregunta, y solo cierra (y manda a Almacenamiento)
-  // después de la tercera respuesta del usuario — para que se sienta como
-  // una conversación real de ida y vuelta, no una respuesta única.
-  // Se guardan TODOS los mensajes del afiliado (no solo el primero) para que
-  // el registro en Almacenamiento refleje la conversación completa.
-  let convo = null; // { intent, messages: [], stage }
+  // ---------------- Panel "Detrás de escena" ----------------
+  const behindSteps = $('behindSteps');
+  const behindLinks = $('behindLinks');
+  const stepEl = (n) => behindSteps.querySelector('li[data-step="' + n + '"]');
+  const behind = {
+    reset() {
+      behindSteps.querySelectorAll('li').forEach((li) => { li.classList.remove('active', 'done'); li.querySelector('.bs-detail').innerHTML = ''; });
+      behindLinks.hidden = true;
+    },
+    active(n) { const s = stepEl(n); s.classList.remove('done'); s.classList.add('active'); },
+    done(n) { const s = stepEl(n); s.classList.remove('active'); s.classList.add('done'); },
+    chip(n, text, cls) {
+      const s = document.createElement('span');
+      s.className = 'bs-chip' + (cls ? ' ' + cls : '');
+      s.textContent = text;
+      stepEl(n).querySelector('.bs-detail').appendChild(s);
+    },
+    line(n, html) {
+      const d = document.createElement('div');
+      d.className = 'bs-line';
+      d.innerHTML = html;
+      stepEl(n).querySelector('.bs-detail').appendChild(d);
+    },
+    meter(n, pct) {
+      const m = document.createElement('div');
+      m.className = 'bs-meter';
+      m.innerHTML = '<i></i>';
+      stepEl(n).querySelector('.bs-detail').appendChild(m);
+      requestAnimationFrame(() => requestAnimationFrame(() => { m.firstChild.style.width = pct + '%'; }));
+    },
+  };
+  function beginBehind(chips) {
+    const tk = runToken;
+    behind.reset();
+    behind.active(1);
+    setTimeout(() => {
+      if (!alive(tk)) return;
+      behind.chip(1, 'Canal: ' + PERSONA.canal);
+      behind.chip(1, '🕒 ' + hhmm());
+      behind.done(1);
+      behind.active(2);
+      chips.forEach((c) => behind.chip(2, c[0], c[1]));
+    }, reduced ? 20 : 700);
+  }
 
-  function handleUserTurn(rawText, displayText) {
-    displayText = displayText || rawText;
-    addBubble(displayText, 'user');
-    chatAttachBtn.classList.remove('hint');
-
-    if (!convo) {
-      // Turno 1: detectar intención y hacer una pregunta de seguimiento real.
-      const intent = matchIntent(rawText);
-      convo = { intent, messages: [displayText], stage: 1 };
-      const typing = addTyping();
-      setTimeout(() => {
-        typing.remove();
-        addBubble(intent.followUp || intent.botReply, 'bot');
-        if (intent.wantsFile) chatAttachBtn.classList.add('hint');
-      }, reduced ? 50 : 850);
-      return;
+  // Corre el "motor": el chat muestra pasos sencillos y, a la vez, el panel
+  // muestra lo que ocurre de verdad (guardar → analizar → decidir).
+  async function runAnalysis(tk, labels, hooks) {
+    behind.done(2);
+    const st = addStepper(labels);
+    for (let i = 0; i < labels.length; i++) {
+      if (!alive(tk)) return false;
+      st.set(i, 'now');
+      if (i === 0) hooks.save();
+      else if (i === 1) { behind.done(3); hooks.model(); }
+      else if (i === 2) { behind.done(4); hooks.decide(); }
+      await wait(950);
+      st.set(i, 'done');
     }
+    if (!alive(tk)) return false;
+    behind.done(5);
+    st.title('Listo ✓');
+    return true;
+  }
 
-    convo.messages.push(displayText);
-
-    if (convo.stage === 1) {
-      // Turno 2: el usuario respondió la primera pregunta.
-      // Si el turno 1 fue genérico (saludo, mensaje ambiguo), esta respuesta suele
-      // traer la palabra clave real ("reembolso", "una cita"...) — reintentamos
-      // la detección de intención aquí para que el bot "entienda" igual.
-      let { intent } = convo;
-      if (intent.id === 'general') {
-        const reIntent = matchIntent(rawText);
-        if (reIntent.id !== 'general') {
-          convo.intent = intent = reIntent;
-          convo.stage = 2;
-          const typing = addTyping();
-          setTimeout(() => {
-            typing.remove();
-            addBubble(intent.followUp || intent.botReply, 'bot');
-            if (intent.wantsFile) chatAttachBtn.classList.add('hint');
-          }, reduced ? 50 : 850);
-          return;
-        }
-      }
-      convo.stage = 2;
-      const typing = addTyping();
-      setTimeout(() => {
-        typing.remove();
-        addBubble(intent.secondUp || intent.botReply, 'bot');
-      }, reduced ? 50 : 850);
-      return;
-    }
-
-    // Turno 3: el usuario respondió — cerramos la interacción de verdad.
-    const { intent, messages } = convo;
-    convo = null;
-    applyIntentToProfile(intent);
-    state.risk = computeRisk() || fallbackRisk();
+  function finalize(intent, messages) {
     state.lastIntent = intent;
     state.messages++;
     state.history.unshift({ time: nowLabel(), msg: messages.join(' · '), label: intent.label });
+    queueStorageRow(messages, intent);
+    unlockTab('almacenamiento'); unlockTab('procesamiento'); unlockTab('cliente');
+    behindLinks.hidden = false;
+    showToast();
+  }
 
-    const typing = addTyping();
-    setTimeout(() => {
-      typing.remove();
-      addBubble('Gracias por la información. ' + intent.botReply, 'bot');
-      queueStorageRow(messages, intent);
-      unlockTab('almacenamiento'); unlockTab('procesamiento'); unlockTab('cliente');
-      showToast();
-    }, reduced ? 50 : 950);
+  // ---------------- Flujo 1: afiliado · fiebre de su hijo ----------------
+  const FEVER_STEPS = [
+    { key: 'edad', ask: 'Gracias por contarme. Para decirte el mejor lugar, solo necesito 3 datos rápidos. Primero: ¿cuántos años tiene tu hijo?',
+      opts: [{ label: 'Menos de 2 años', v: 'lt2' }, { label: 'De 2 a 5 años', v: '2a5' }, { label: 'De 6 a 12 años', v: '6a12' }, { label: 'De 13 a 17 años', v: '13a17' }],
+      names: { lt2: 'menos de 2 años', '2a5': '2 a 5 años', '6a12': '6 a 12 años', '13a17': '13 a 17 años' }, chipLabel: 'Edad',
+      parse(t) {
+        t = norm(t);
+        if (/beb[eé]|recien|meses|mes\b/.test(t)) return 'lt2';
+        const m = t.match(/(\d+)/);
+        if (!m) return null;
+        const n = +m[1];
+        return n < 2 ? 'lt2' : n <= 5 ? '2a5' : n <= 12 ? '6a12' : n <= 17 ? '13a17' : null;
+      } },
+    { key: 'temp', ask: 'Entiendo. ¿Qué tan alta es la fiebre ahora?',
+      opts: [{ label: 'Menos de 38,5°', v: 'baja' }, { label: 'Entre 38,5° y 39,5°', v: 'media' }, { label: 'Más de 39,5°', v: 'alta' }, { label: 'No tengo termómetro, se siente caliente', v: 'media' }],
+      names: { baja: 'menos de 38,5°', media: '38,5° a 39,5°', alta: 'más de 39,5°' }, chipLabel: 'Fiebre',
+      parse(t) {
+        t = norm(t);
+        const m = t.match(/(\d{2})(?:[.,](\d))?/);
+        if (m) { const v = parseFloat(m[1] + '.' + (m[2] || '0')); if (v >= 35 && v <= 43) return v < 38.5 ? 'baja' : v <= 39.5 ? 'media' : 'alta'; }
+        if (/termometro|caliente|calentura/.test(t)) return 'media';
+        return null;
+      } },
+    { key: 'alarma', ask: 'Última pregunta: ¿tiene alguna de estas señales? Está muy decaído, respira con dificultad, vomita sin parar o le salieron manchas en la piel.',
+      opts: [{ label: 'Sí, alguna de esas', v: 'si' }, { label: 'No, solo tiene fiebre', v: 'no' }],
+      names: { si: 'sí', no: 'no' }, chipLabel: 'Señales de alarma',
+      parse(t) {
+        t = norm(t);
+        if (/^(no|ninguna|solo)/.test(t) || /no tiene|solo fiebre|ninguna/.test(t)) return 'no';
+        if (/^(si|alguna)|decaid|dificultad|vomit|mancha/.test(t)) return 'si';
+        return null;
+      } },
+  ];
+  function feverLevel(d) {
+    const pts = (d.edad === 'lt2' ? 2 : d.edad === '2a5' ? 1 : 0) + (d.temp === 'alta' ? 2 : d.temp === 'media' ? 1 : 0) + (d.alarma === 'si' ? 3 : 0);
+    return { pts, level: pts >= 3 ? 'alta' : pts >= 1 ? 'media' : 'baja', pct: Math.round((pts / 7) * 100) };
+  }
+  function rankProviders(level) {
+    const w = WEIGHTS[level];
+    return PROVIDERS.map((p) => {
+      const parts = { urg: p.urg, wait: 1 - p.wait / 60, dist: 1 - p.dist / 10, cov: p.cov };
+      const score = Math.round((parts.urg * w.urg + parts.wait * w.wait + parts.dist * w.dist + parts.cov * w.cov) * 100);
+      return { p, parts, score };
+    }).sort((a, b) => b.score - a.score);
+  }
+
+  async function startFever(text) {
+    const tk = runToken;
+    flow = { type: 'fiebre', step: 0, data: {}, messages: [text], awaiting: 'step', busy: true };
+    beginBehind([['Quién: ' + PERSONA.name], ['Motivo: fiebre en un menor', 'hot']]);
+    if (!await say('Claro, ' + PERSONA.first + ', te ayudo ahora mismo. Vamos a encontrar dónde atenderlo hoy.', 900)) return;
+    askFeverStep(tk);
+  }
+  async function askFeverStep(tk) {
+    const s = FEVER_STEPS[flow.step];
+    flow.busy = true;
+    if (!await say(s.ask, 700)) return;
+    flow.busy = false;
+    addChips(s.opts);
+  }
+  async function feverAnswer(text, v) {
+    const tk = runToken;
+    const s = FEVER_STEPS[flow.step];
+    const val = v || s.parse(text);
+    if (!val) {
+      flow.busy = true;
+      if (!await say('No te entendí del todo. Elige una de estas opciones, por favor:', 600)) return;
+      flow.busy = false;
+      addChips(s.opts);
+      return;
+    }
+    flow.data[s.key] = val;
+    behind.chip(2, s.chipLabel + ': ' + s.names[val], (s.key === 'alarma' && val === 'si') || (s.key === 'temp' && val === 'alta') ? 'hot' : 'good');
+    flow.step++;
+    if (flow.step < FEVER_STEPS.length) { askFeverStep(tk); return; }
+    analyzeFever(tk);
+  }
+  async function analyzeFever(tk) {
+    flow.busy = true;
+    const d = flow.data;
+    const { pts, level, pct } = feverLevel(d);
+    const ranked = rankProviders(level);
+    const best = ranked[0];
+    profile.tiempo_respuesta_prom_h = 12;
+    state.risk = computeRisk() || fallbackRisk();
+    const ok = await runAnalysis(tk, [
+      'Revisando tu plan y tu cobertura',
+      'Buscando lugares con urgencias abiertos ahora',
+      'Comparando cercanía y tiempo de espera',
+      'Ordenando de la mejor a la menos recomendada',
+    ], {
+      save() {
+        behind.active(3);
+        behind.line(3, '<b>Registro #AF-' + String(2400 + state.messages + 1) + '</b> guardado en la base única');
+        behind.chip(3, 'Sin duplicar datos', 'good');
+      },
+      model() {
+        behind.active(4);
+        behind.line(4, 'Nivel de urgencia: <b>' + LEVEL_TXT[level] + '</b> (' + pts + ' de 7 puntos)');
+        behind.meter(4, Math.max(8, pct));
+        behind.line(4, 'Riesgo de no renovación (modelo real): <b>' + state.risk.renov.pct + '%</b>');
+      },
+      decide() {
+        behind.active(5);
+        behind.line(5, 'Mejor opción: <b>' + best.p.name + '</b> · ' + best.score + '/100');
+        behind.chip(5, 'Reglas + datos de ejemplo', '');
+      },
+    });
+    if (!ok) return;
+    const intent = { id: 'fiebre', flow: 'fiebre', persona: 'afiliado', label: 'Urgencia pediátrica', level, pts, pct, ranked, data: d };
+    finalize(intent, flow.messages);
+
+    if (level === 'alta') addBubble('⚠️ Por lo que me cuentas, no esperes: lleva a tu hijo a urgencias ahora. Si respira muy mal o no reacciona, llama al 911.', 'bot warn-note');
+    else if (level === 'media') addBubble('Conviene que un médico lo vea hoy. Estas son tus mejores opciones:', 'bot');
+    else addBubble('No suena grave, pero conviene que lo vea un médico si la fiebre sigue. Estas son tus opciones:', 'bot');
+    await wait(500);
+    if (!alive(tk)) return;
+    addBubble('Entiendo tu preocupación, ' + PERSONA.first + '. Dentro de tu red hemos analizado estas 3 opciones donde puedes acudir inmediatamente. Te las ordené de la mejor a la menos recomendada:', 'bot');
+    const html = ranked.map((r, i) =>
+      '<button type="button" class="opt-card pick' + (i === 0 ? ' best' : '') + '" data-id="' + r.p.id + '" style="animation-delay:' + (i * 0.2) + 's">' +
+      (i === 0 ? '<span class="opt-badge">Recomendada</span>' : '') +
+      '<span class="opt-rank">' + (i + 1) + '</span><div class="opt-body"><b>' + r.p.name + '</b><small>' + r.p.sub + '</small>' +
+      '<div class="opt-meta"><span class="opt-tag">📍 ' + r.p.dist.toString().replace('.', ',') + ' km · ' + r.p.eta + '</span>' +
+      '<span class="opt-tag ' + (r.p.wait <= 15 ? 'ok' : 'warn') + '">⏱ Espera ~' + r.p.wait + ' min</span>' +
+      '<span class="opt-tag ok">✓ ' + r.p.covTxt + '</span></div>' +
+      '<div class="opt-match"><div class="bar"><i data-w="' + r.score + '"></i></div><span>' + r.score + '% encaja</span></div></div></button>').join('');
+    const el = addRich(html);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll('.bar i').forEach((i) => { i.style.width = i.dataset.w + '%'; })));
+    await wait(900);
+    if (!alive(tk)) return;
+    flow.ranked = ranked;
+    flow.awaiting = 'pick';
+    flow.busy = false;
+    addBubble('Toca el lugar al que vas a ir y te dejo todo listo.', 'bot');
+  }
+  async function feverPick(text, id) {
+    const tk = runToken;
+    let r = null;
+    if (id) r = flow.ranked.find((x) => x.p.id === id);
+    else {
+      const t = norm(text);
+      if (/valles|\b1\b|primer/.test(t)) r = flow.ranked.find((x) => x.p.id === 'valles') || flow.ranked[0];
+      else if (/lucia|santa/.test(t)) r = flow.ranked.find((x) => x.p.id === 'santalucia');
+      else if (/norte|quito/.test(t)) r = flow.ranked.find((x) => x.p.id === 'quitonorte');
+      else if (/\b2\b|segund/.test(t)) r = flow.ranked[1];
+      else if (/\b3\b|tercer/.test(t)) r = flow.ranked[2];
+    }
+    if (!r) { await say('Toca una de las tres opciones de arriba para elegir.', 500); return; }
+    flow.busy = true;
+    chatBody.querySelectorAll('.opt-card.pick').forEach((c) => { c.classList.remove('pick'); c.disabled = true; if (c.dataset.id === r.p.id) c.classList.add('best'); });
+    if (state.lastIntent) { state.lastIntent.picked = r.p.id; }
+    if (!await say('Perfecto, ' + PERSONA.first + '. Avisé a ' + r.p.name + ' que vas en camino con tu hijo. Lleva tu cédula y tu carné digital: tu plan cubre la atención. Mañana te escribo para saber cómo sigue. 💙', 900)) return;
+    flow.done = true; flow.busy = false;
+  }
+
+  // ---------------- Flujo 2: bróker · estado de un reembolso ----------------
+  async function startReimb(text) {
+    const tk = runToken;
+    flow = { type: 'reembolso', data: {}, messages: [text], awaiting: 'pick', busy: true };
+    beginBehind([['Bróker: ' + PERSONA.name], ['Afiliado: Juan Pérez', 'good'], ['Trámite: reembolso', 'hot']]);
+    if (!await say('Un momento, ' + PERSONA.first + ', busco a tu afiliado Juan Pérez…', 800)) return;
+    showReimbList(tk);
+  }
+  async function showReimbList(tk) {
+    flow.busy = true;
+    flow.awaiting = 'pick';
+    if (!await say('El afiliado Juan Pérez cuenta con los siguientes reembolsos activos. ¿Cuál deseas consultar?', 700)) return;
+    const html = REIMBS.map((r, i) =>
+      '<button type="button" class="opt-card pick" data-id="' + r.id + '" style="animation-delay:' + (i * 0.15) + 's">' +
+      '<span class="opt-rank">#</span><div class="opt-body"><b>#' + r.id + ' · ' + r.short + '</b><small>' + r.title + ' · recibido el ' + r.recv + '</small>' +
+      '<div class="opt-meta"><span class="opt-tag ' + (r.stage === 3 ? 'ok' : 'warn') + '">' + r.status + '</span></div></div></button>').join('');
+    addRich(html);
+    flow.busy = false;
+    addChips([{ label: 'Deseo consultar sobre el de SIME Imagen · Tomografía simple', v: '2534', cls: 'suggest' }]);
+  }
+  async function reimbPick(text, id) {
+    const tk = runToken;
+    let r = id ? REIMBS.find((x) => x.id === id) : null;
+    if (!r) {
+      const t = norm(text);
+      if (/2534|sime|tomograf|imagen/.test(t)) r = REIMBS[0];
+      else if (/2519|laborat|sangre/.test(t)) r = REIMBS[1];
+      else if (/2541|traumat/.test(t)) r = REIMBS[2];
+    }
+    if (!r) {
+      flow.busy = true;
+      if (!await say('No encontré ese reembolso. Elige uno de la lista:', 600)) return;
+      flow.busy = false;
+      return;
+    }
+    flow.busy = true;
+    removeChips();
+    chatBody.querySelectorAll('.opt-card.pick').forEach((c) => { c.classList.remove('pick'); c.disabled = true; });
+    const hours = Math.round((DEMO_TODAY - r.date) / 3600000);
+    behind.chip(2, 'Reembolso #' + r.id, 'hot');
+    profile.tiempo_respuesta_prom_h = Math.min(72, hours);
+    state.risk = computeRisk() || fallbackRisk();
+    const ok = await runAnalysis(tk, [
+      'Buscando el reembolso #' + r.id + ' en la base única',
+      'Leyendo su estado y sus documentos',
+      'Calculando cuándo habrá respuesta',
+      'Asignando un ejecutivo de liquidaciones',
+    ], {
+      save() {
+        behind.active(3);
+        behind.line(3, '<b>Consulta #BR-' + String(900 + state.messages + 1) + '</b> guardada en la base única');
+        behind.chip(3, 'Trazabilidad del bróker', 'good');
+      },
+      model() {
+        behind.active(4);
+        behind.line(4, 'Tiempo en el sistema: <b>' + hours + ' h</b> · estado: <b>' + r.status + '</b>');
+        behind.meter(4, Math.min(100, Math.round((hours / 72) * 100)));
+        behind.line(4, 'Riesgo de no renovación (modelo real): <b>' + state.risk.renov.pct + '%</b>');
+      },
+      decide() {
+        behind.active(5);
+        behind.line(5, 'Respuesta al bróker: <b>' + r.status + '</b> · ≤ ' + r.eta);
+        behind.chip(5, 'Reglas + datos de ejemplo', '');
+      },
+    });
+    if (!ok) return;
+    const intent = { id: 'reembolso', flow: 'reembolso', persona: 'broker', label: 'Estado de reembolso', reimb: r, hours };
+    finalize(intent, flow.messages);
+    addBubble(r.msg, 'bot');
+    await wait(500);
+    if (!alive(tk)) return;
+    addTimeline(r.stage);
+    await wait(700);
+    if (!alive(tk)) return;
+    flow.awaiting = 'post';
+    flow.busy = false;
+    addChips([{ label: 'Avísame cuando cambie el estado', v: 'notify', cls: 'suggest' }, { label: 'Consultar otro reembolso', v: 'other', cls: 'ghost' }]);
+  }
+  async function reimbPost(text, v) {
+    const t = norm(text);
+    const val = v || (/avis|notific|cambie/.test(t) ? 'notify' : /otro|otra|lista/.test(t) ? 'other' : null);
+    flow.busy = true;
+    if (val === 'notify') {
+      if (!await say('Listo, ' + PERSONA.first + '. Te aviso aquí y por correo apenas cambie el estado del reembolso.', 800)) return;
+      flow.busy = false;
+      addChips([{ label: 'Consultar otro reembolso', v: 'other', cls: 'ghost' }]);
+    } else if (val === 'other') {
+      showReimbList(runToken);
+    } else {
+      if (!await say('Puedo avisarte cuando cambie el estado, o consultar otro reembolso de Juan Pérez:', 600)) return;
+      flow.busy = false;
+      addChips([{ label: 'Avísame cuando cambie el estado', v: 'notify', cls: 'suggest' }, { label: 'Consultar otro reembolso', v: 'other', cls: 'ghost' }]);
+    }
+  }
+
+  // ---------------- Enrutador de mensajes ----------------
+  function isFeverText(t) { return /fiebre|calentura|temperatura|hij[oa]|doctor|pediatr|urgenc|emergenc|llevar|nino|nina/.test(norm(t)); }
+  function isReimbText(t) { return /reembols|rembols|juan|perez|sime|tomograf|estado|tramite/.test(norm(t)); }
+
+  function userSays(text, value) {
+    if (flow && flow.busy) return;
+    addBubble(text, 'user');
+    chatAttachBtn.classList.remove('hint');
+    removeChips();
+    if (flow && !flow.done && flow.awaiting) {
+      if (flow.type === 'fiebre') {
+        if (flow.awaiting === 'step') return feverAnswer(text, value);
+        if (flow.awaiting === 'pick') return feverPick(text, value);
+      } else {
+        if (flow.awaiting === 'pick') return reimbPick(text, value);
+        if (flow.awaiting === 'post') return reimbPost(text, value);
+      }
+    }
+    // Sin flujo activo (o ya terminó): ¿empieza uno nuevo?
+    if (PERSONA.key === 'afiliado' && isFeverText(text)) { startFever(text); return; }
+    if (PERSONA.key === 'broker' && isReimbText(text)) { startReimb(text); return; }
+    if (flow && flow.done) flow = null;
+    (async () => {
+      flow = null;
+      if (await say('Para esta demostración puedo ayudarte con esto:', 600)) addChips([{ label: PERSONA.starter, cls: 'suggest' }]);
+    })();
+  }
+
+  function ensureChatIntro() {
+    if (chatBody.children.length) return;
+    addBubble(PERSONA.intro, 'bot');
+    addChips([{ label: PERSONA.starter, cls: 'suggest' }]);
   }
 
   chatForm.addEventListener('submit', (e) => {
@@ -469,20 +825,28 @@
     const text = chatInput.value.trim();
     if (!text) return;
     chatInput.value = '';
-    handleUserTurn(text);
+    userSays(text);
   });
-
-  const chatAttachBtn = document.getElementById('chatAttachBtn');
-  const chatFileInput = document.getElementById('chatFileInput');
+  chatBody.addEventListener('click', (e) => {
+    const c = e.target.closest('.opt-card.pick');
+    if (!c || !flow || flow.busy) return;
+    if (flow.type === 'fiebre' && flow.awaiting === 'pick') {
+      const r = flow.ranked.find((x) => x.p.id === c.dataset.id);
+      userSays('Voy a ' + r.p.name, c.dataset.id);
+    } else if (flow.type === 'reembolso' && flow.awaiting === 'pick') {
+      const r = REIMBS.find((x) => x.id === c.dataset.id);
+      userSays(r.pick, c.dataset.id);
+    }
+  });
   if (chatAttachBtn && chatFileInput) {
     chatAttachBtn.addEventListener('click', () => chatFileInput.click());
     chatFileInput.addEventListener('change', () => {
       const file = chatFileInput.files && chatFileInput.files[0];
       chatFileInput.value = '';
-      if (!file) return;
-      handleUserTurn('Adjunté el archivo "' + file.name + '"', '📎 ' + file.name);
+      if (file) userSays('📎 ' + file.name);
     });
   }
+
 
   // ---------------- Toast ----------------
   const toast = document.getElementById('toast');
@@ -518,7 +882,7 @@
 
   function queueStorageRow(messages, intent) {
     const text = Array.isArray(messages) ? messages.join('\n') : messages;
-    state.pendingRow = { time: nowLabel(), canal: 'App móvil', msg: text, intent: intent.label };
+    state.pendingRow = { time: nowLabel(), canal: PERSONA.canal, msg: text, intent: intent.label };
   }
   function nowLabel() {
     return 'Hoy · ' + new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
@@ -583,8 +947,7 @@
   const netCtx = netCanvas.getContext('2d');
 
   const LAYER_COUNTS = [6, 9, 9, 7, 3];
-  const INPUT_LABELS = ['Texto del mensaje', 'Edad y género', 'Historial de citas', 'Quejas registradas', 'Diagnósticos previos', 'Canal de contacto'];
-  const OUTPUT_LABELS = ['Riesgo de salud', 'Riesgo de no renovación', 'Seguimiento estándar'];
+  let INPUT_LABELS = NET_LABELS.default.in, OUTPUT_LABELS = NET_LABELS.default.out;
   const LAYER_DELAY = 230, RAMP = 300;
 
   let netNodes = [], netEdges = [], netW = 0, netH = 0, netAnimId = null, netStart = 0, netSettled = false, netOutcome = null;
@@ -675,12 +1038,19 @@
     } else {
       netSettled = true;
       drawNet(totalDur);
-      reasoningText.textContent = state.lastIntent.reasoning + realStatsLine(state.lastIntent, state.risk || fallbackRisk());
+      settleReasoning(state.risk || fallbackRisk());
       btnGoCliente.disabled = false;
     }
   }
+  function settleReasoning(risk) {
+    reasoningText.textContent = reasoningFor(state.lastIntent, risk);
+    paintDecision(state.lastIntent, risk);
+  }
   function playNetwork() {
     if (netAnimId) cancelAnimationFrame(netAnimId);
+    const NL = NET_LABELS[state.lastIntent ? state.lastIntent.flow : 'default'];
+    INPUT_LABELS = NL.in; OUTPUT_LABELS = NL.out;
+    $('decisionCard').hidden = true;
     buildNetLayout();
     btnGoCliente.disabled = true;
     netSettled = false;
@@ -690,13 +1060,13 @@
       return;
     }
     const risk = state.risk || fallbackRisk();
-    netOutcome = outcomeFromRisk(state.lastIntent, risk);
+    netOutcome = outcomeFromIntent(state.lastIntent, risk);
     reasoningText.textContent = '';
     if (reduced) {
       netSettled = true;
       const totalDur = (LAYER_COUNTS.length - 1) * LAYER_DELAY + RAMP;
       drawNet(totalDur);
-      reasoningText.textContent = state.lastIntent.reasoning + realStatsLine(state.lastIntent, risk);
+      settleReasoning(risk);
       btnGoCliente.disabled = false;
       return;
     }
@@ -713,9 +1083,10 @@
 
   // ---------------- Cliente interno: buscador de afiliado ----------------
   const AFFILIATES = [
-    { name: 'María Fernández López', cedula: '1102567412', real: true },
-    { name: 'Carlos Mendoza Ruiz', cedula: '0923456781', real: false },
-    { name: 'Ana Torres Vega', cedula: '1756789012', real: false },
+    { id: 'daniel', name: 'Daniel Chacón', cedula: '1712345678' },
+    { id: 'juan', name: 'Juan Pérez', cedula: '1718765432' },
+    { id: 'carlos', name: 'Carlos Mendoza Ruiz', cedula: '0923456781' },
+    { id: 'ana', name: 'Ana Torres Vega', cedula: '1756789012' },
   ];
   const clientSearch = document.getElementById('clientSearch');
   const searchSuggestions = document.getElementById('searchSuggestions');
@@ -744,7 +1115,7 @@
     const affiliate = AFFILIATES.find((a) => a.name === item.dataset.name);
     clientSearch.value = affiliate.name;
     searchSuggestions.classList.remove('show');
-    if (affiliate.real) {
+    if (affiliate.id === PERSONA.clientId) {
       clientSelected = true;
       clientEmpty.hidden = true;
       clientResults.hidden = false;
@@ -753,7 +1124,7 @@
       clientSelected = false;
       clientResults.hidden = true;
       clientEmpty.hidden = false;
-      clientEmpty.innerHTML = '<span class="client-empty-ic">🚧</span><p>Esta demo solo tiene datos en vivo para <b>María Fernández López</b> — el caso que trabajaste en el chat. Búscala para ver su ficha completa.</p>';
+      clientEmpty.innerHTML = '<span class="client-empty-ic">🚧</span><p>Esta demo solo tiene datos en vivo para <b>' + PERSONA.clientName + '</b> — el caso que trabajaste en el chat. Búscalo para ver su ficha completa.</p>';
     }
   });
 
@@ -790,6 +1161,7 @@
 
   function renderClient() {
     animateCount(statMsgs, state.messages);
+    const li = state.lastIntent;
     const risk = state.risk || fallbackRisk();
 
     if (risk.diab.high) {
@@ -808,9 +1180,19 @@
         plan: RENOV_PLAN,
       });
     }
+    if (li && li.flow === 'fiebre') {
+      addAlert({ key: 'urgencia', icon: '🩺', title: 'Consulta de urgencia pediátrica',
+        text: 'Consultó por la fiebre de su hijo (urgencia ' + LEVEL_TXT[li.level].toLowerCase() + ')' + (li.picked ? ' y eligió ' + li.ranked.find((x) => x.p.id === li.picked).p.name : '') + '.',
+        plan: flowPlan(li) });
+    }
+    if (li && li.flow === 'reembolso') {
+      addAlert({ key: 'reembolso', icon: '🧾', title: 'Reembolso #' + li.reimb.id + ' en estado ' + li.reimb.status,
+        text: 'Lleva ' + li.hours + ' h en el sistema; la respuesta está comprometida en ' + li.reimb.eta + '.',
+        plan: flowPlan(li) });
+    }
     const strategyList = document.getElementById('strategyList');
     if (strategyList) {
-      const items = [...(risk.renov.high ? RENOV_PLAN : []), ...(risk.diab.high ? DIAB_PLAN : [])];
+      const items = [...flowPlan(li), ...(risk.renov.high ? RENOV_PLAN : []), ...(risk.diab.high ? DIAB_PLAN : [])];
       strategyList.innerHTML = (items.length ? items : DEFAULT_PLAN).map((p) =>
         '<li><span class="strategy-box"></span><span class="strategy-text">' + p + '</span><span class="strategy-check">✓</span></li>'
       ).join('');
@@ -836,13 +1218,14 @@
         ' · percentil ' + risk.renov.pctl;
     }
     if (opText) {
-      if (risk.renov.high) opText.textContent = 'Recomendación personalizada: contacto proactivo de un asesor de retención y revisión del plan en las próximas 24h.';
+      if (li && li.flow) opText.textContent = flowReco(li);
+      else if (risk.renov.high) opText.textContent = 'Recomendación personalizada: contacto proactivo de un asesor de retención y revisión del plan en las próximas 24h.';
       else if (risk.diab.high) opText.textContent = 'Recomendación personalizada: programa de control de glucosa, seguimiento nutricional y recordatorio de citas con endocrinología.';
       else opText.textContent = 'Recomendación personalizada: recordatorio de control médico y programa de bienestar.';
     }
     let showDiab = false;
     if (MODELS) {
-      showDiab = risk.diab.proba >= risk.renov.proba;
+      showDiab = false;
       lastShowDiab = showDiab;
       renderForestSVG(showDiab ? MODELS.diabetes : MODELS.no_renovacion, profile, 0);
     }
@@ -856,13 +1239,13 @@
     const diabText = document.getElementById('p360DiabText');
     if (diabText) {
       diabText.innerHTML = risk.diab.high
-        ? '<b>Diabetes tipo 2</b> — riesgo alto detectado'
-        : '<b>Diabetes tipo 2</b> en seguimiento preventivo';
+        ? '<b>Riesgo metabólico</b> alto detectado'
+        : '<b>Riesgo metabólico</b> bajo';
     }
     const citasText = document.getElementById('p360CitasText');
     if (citasText) {
-      const n = profile.num_citas_glucosa_6m || 0;
-      citasText.innerHTML = '<b>' + n + ' ' + (n === 1 ? 'cita' : 'citas') + '</b> en los últimos 6 meses';
+      const n = state.messages || 0;
+      citasText.innerHTML = '<b>' + n + ' ' + (n === 1 ? 'interacción' : 'interacciones') + '</b> con ConfIAbot';
     }
     const fill = document.getElementById('p360RiskFill');
     const pctEl = document.getElementById('p360RiskPct');
@@ -946,6 +1329,105 @@
       '<ul>' + a.plan.map((p) => '<li>' + p + '</li>').join('') + '</ul></div>';
   }
 
+
+  // ---------------- Persona: aplicar portal elegido y reiniciar la demo ----------------
+  function setText(id, t) { const el = $(id); if (el) el.textContent = t; }
+  function applyPersona(key) {
+    runToken++;
+    PERSONA = PERSONAS[key];
+    const P = PERSONA;
+    // reinicio de la sesión
+    flow = null;
+    chatBody.innerHTML = '';
+    behind.reset();
+    state.messages = 0; state.alerts = {}; state.history = []; state.lastIntent = null; state.risk = null; state.pendingRow = null;
+    pendingSaveRow = null;
+    btnGuardar.disabled = true; btnGoProc.disabled = true; $('btnGoCliente').disabled = true;
+    storeBody.innerHTML = '';
+    seedRows.forEach((r) => storeBody.appendChild(makeRow(r, false)));
+    alertsWrap.querySelectorAll('.alert-card:not(.baseline)').forEach((a) => a.remove());
+    if (netAnimId) cancelAnimationFrame(netAnimId);
+    netOutcome = null;
+    $('decisionCard').hidden = true;
+    ['almacenamiento', 'procesamiento', 'cliente'].forEach((n) => { const b = tabBtns.find((x) => x.dataset.view === n); if (b) b.disabled = true; });
+    clientSelected = false; clientSearch.value = '';
+    clientResults.hidden = true; clientEmpty.hidden = false;
+    clientEmpty.innerHTML = '<span class="client-empty-ic">🗂️</span><p>Busca a <b id="clientEmptyName">' + P.clientName + '</b> arriba para abrir su ficha — es el caso que acabas de trabajar en el chat.</p>';
+    Object.assign(profile, P.profile);
+
+    // cabecera
+    $('personaChip').hidden = false;
+    const setAv = (id) => { const a = $(id); if (a) { a.textContent = P.initials; a.classList.toggle('broker', P.broker); } };
+    ['personaAvatar', 'pFootAvatar', 'pTopAvatar', 'cAvatar'].forEach(setAv);
+    setText('personaName', P.name); setText('personaRole', P.role);
+    // portal (inicio)
+    setText('pTagline', P.tagline); setText('pFootName', P.name); setText('pFootSub', P.foot);
+    setText('pGreet', P.greet); setText('pGreetSub', P.greetSub);
+    $('pNav').innerHTML = P.nav.map((n, i) => '<li' + (i === 0 ? ' class="active"' : '') + '>' + n + '</li>').join('');
+    $('pStats').querySelectorAll('.qstat').forEach((q, i) => { q.querySelector('b').textContent = P.stats[i][0]; q.querySelector('small').textContent = P.stats[i][1]; });
+    $('pCards').innerHTML = P.cards.map((c) =>
+      '<div class="portal-card' + (c.hl ? ' highlight" id="btnOpenChat" role="button" tabindex="0' : '') + '"><span class="pc-ic">' + c.ic + '</span><b>' + c.b + '</b><small>' + c.s + '</small></div>').join('');
+    setText('pSub', P.sub); setText('pHint', P.hint);
+    // chat
+    setText('cName', P.name); setText('cSub', P.role);
+    // cliente interno
+    const ca = $('clientAvatar'); ca.textContent = P.clientInitials;
+    setText('clientName', P.clientName); setText('clientKicker', P.clientKicker); setText('clientEmptyName', P.clientName);
+    clientSearch.placeholder = 'Buscar afiliado por nombre…';
+  }
+
+  // ---------------- Decisión del motor (Procesamiento) ----------------
+  const FOOTNOTE = '<div class="dc-weights" style="margin-top:10px">Motor de reglas con datos de ejemplo (distancias, esperas y coberturas simuladas). El riesgo de no renovación sí lo calcula el modelo real entrenado.</div>';
+  function reasoningFor(intent, risk) {
+    if (intent.flow === 'fiebre') {
+      const w = WEIGHTS[intent.level];
+      return 'Se combinan la edad del niño, la temperatura y las señales de alarma para estimar la urgencia (nivel ' + LEVEL_TXT[intent.level].toLowerCase() + ', ' + intent.pts + ' de 7 puntos). ' +
+        'Con ese nivel el motor decide qué pesa más al ordenar los lugares: atención de urgencias ' + Math.round(w.urg * 100) + '%, espera ' + Math.round(w.wait * 100) + '%, cercanía ' + Math.round(w.dist * 100) + '% y cobertura ' + Math.round(w.cov * 100) + '%. ' +
+        'Resultado: ' + intent.ranked[0].p.name + ' encabeza la lista.' + realStatsLine(intent, risk);
+    }
+    return 'El motor lee el estado del reembolso #' + intent.reimb.id + ' (' + intent.reimb.status + '), el tiempo que lleva en el sistema (' + intent.hours + ' h) y la carga de los ejecutivos de liquidaciones para estimar cuándo habrá respuesta (≤ ' + intent.reimb.eta + '). ' +
+      'Ese tiempo de espera también entra como dato al modelo de retención.' + realStatsLine(intent, risk);
+  }
+  function paintDecision(intent, risk) {
+    const card = $('decisionCard'), title = $('decisionTitle'), body = $('decisionBody');
+    if (!intent) { card.hidden = true; return; }
+    card.hidden = false;
+    if (intent.flow === 'fiebre') {
+      const w = WEIGHTS[intent.level];
+      title.textContent = 'Decisión del motor · ¿a dónde llevar al hijo de ' + PERSONAS.afiliado.first + '?';
+      const bar = (lbl, v) => '<div class="dc-bar"><span>' + lbl + '</span><div><i style="width:' + Math.round(v * 100) + '%"></i></div></div>';
+      body.innerHTML =
+        '<div class="dc-weights">Nivel de urgencia <b>' + LEVEL_TXT[intent.level] + '</b> → pesos: urgencias ' + Math.round(w.urg * 100) + '% · espera ' + Math.round(w.wait * 100) + '% · cercanía ' + Math.round(w.dist * 100) + '% · cobertura ' + Math.round(w.cov * 100) + '%</div>' +
+        intent.ranked.map((r, i) => '<div class="dc-row"><span class="rk">' + (i + 1) + '</span><div class="nm"><b>' + r.p.name + '</b><small>' + r.p.sub + '</small></div>' +
+          '<div class="dc-bars">' + bar('Urgencias', r.parts.urg) + bar('Espera', r.parts.wait) + bar('Cercanía', r.parts.dist) + bar('Cobertura', r.parts.cov) + '</div>' +
+          '<div class="dc-score">' + r.score + '</div></div>').join('') +
+        '<div class="dc-checks">' +
+        '<div class="dc-check good"><b>✓ Dentro de la red</b>Los 3 lugares están en la red del plan de ' + PERSONAS.afiliado.first + '.</div>' +
+        '<div class="dc-check ' + (intent.level === 'alta' ? 'warn' : 'good') + '"><b>' + (intent.level === 'alta' ? '⚠ Alerta de seguridad' : '✓ Sin señales de alarma graves') + '</b>' +
+        (intent.level === 'alta' ? 'Se avisó que vaya a urgencias ya y se mostró el 911.' : 'Se recomienda control médico hoy.') + '</div>' +
+        '<div class="dc-check ' + (risk.renov.high ? 'warn' : 'good') + '"><b>Modelo real · retención</b>' + risk.renov.pct + '% de riesgo de no renovación (percentil ' + risk.renov.pctl + ').</div></div>' + FOOTNOTE;
+    } else {
+      const r = intent.reimb;
+      title.textContent = 'Decisión del motor · reembolso #' + r.id + ' de Juan Pérez';
+      body.innerHTML =
+        '<div class="dc-steps">' + REIMB_STAGES.map((s, i) => '<div class="dc-step ' + (i < r.stage ? 'done' : i === r.stage ? 'now' : '') + '">' + (i < r.stage ? '✓ ' : '') + s + '</div>').join('') + '</div>' +
+        '<div class="dc-checks">' +
+        '<div class="dc-check good"><b>✓ Documentos completos</b>El trámite no requiere más papeles del afiliado.</div>' +
+        '<div class="dc-check ' + (intent.hours >= 48 ? 'warn' : 'good') + '"><b>' + (intent.hours >= 48 ? '⚠ ' : '✓ ') + 'Tiempo en el sistema</b>' + intent.hours + ' horas · respuesta comprometida en ' + r.eta + '.</div>' +
+        '<div class="dc-check good"><b>✓ Ejecutivo disponible</b>Cola de liquidaciones con 14 casos (simulado) · asignación en minutos.</div>' +
+        '<div class="dc-check ' + (risk.renov.high ? 'warn' : 'good') + '"><b>Modelo real · retención</b>' + risk.renov.pct + '% de riesgo de no renovación con ' + intent.hours + ' h de espera (percentil ' + risk.renov.pctl + ').</div></div>' + FOOTNOTE;
+    }
+  }
+  function flowPlan(li) {
+    if (!li) return [];
+    if (li.flow === 'fiebre') return ['Llamada de seguimiento en 24 h para saber cómo sigue su hijo', 'Registrar la atención recibida en su historial'];
+    return ['Priorizar la asignación a un ejecutivo de liquidaciones', 'Avisar a la bróker apenas cambie el estado'];
+  }
+  function flowReco(li) {
+    if (li.flow === 'fiebre') return 'Recomendación: dar seguimiento a la atención de urgencia de su hijo y confirmar en 24 h que esté bien. Es un momento clave para que sienta a Confiamed de su lado.';
+    return 'Recomendación: cerrar el reembolso #' + li.reimb.id + ' dentro del plazo prometido y avisar a la bróker; una respuesta a tiempo protege la renovación del afiliado.';
+  }
+
   // ---------------- Ambient background particles ----------------
   const bg = document.getElementById('bgCanvas');
   const bgCtx = bg.getContext('2d');
@@ -971,4 +1453,8 @@
   window.addEventListener('resize', () => { resizeBg(); initParticles(); });
   resizeBg(); initParticles();
   if (!reduced) bgLoop(); else drawBg();
+
+  // ---------------- Inicio ----------------
+  applyPersona('afiliado');
+  $('personaChip').hidden = true;
 })();
