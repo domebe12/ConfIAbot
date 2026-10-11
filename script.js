@@ -320,19 +320,6 @@
     };
   }
   function plural(n, singular, plural2) { return n + ' ' + (n === 1 ? singular : plural2); }
-  // Resultado de la red neuronal según el flujo que se acaba de vivir
-  function outcomeFromIntent(intent, risk) {
-    if (!intent) return { index: 2, danger: false };
-    if (intent.flow === 'fiebre') {
-      const idx = intent.level === 'alta' ? 0 : intent.level === 'media' ? 1 : 2;
-      return { index: idx, danger: intent.level === 'alta' };
-    }
-    if (intent.flow === 'reembolso') {
-      const idx = intent.reimb.stage >= 3 ? 2 : (intent.hours > 72 ? 0 : 1);
-      return { index: idx, danger: idx === 0 };
-    }
-    return { index: 2, danger: false };
-  }
   function realStatsLine(intent, risk) {
     return ' Además, el modelo real (regresión logística + random forest) estima ' + risk.renov.pct +
       '% de probabilidad de no renovación para ' + PERSONAS[intent.persona].clientName + ' (percentil ' + risk.renov.pctl + ' del segmento).';
@@ -958,147 +945,29 @@
     setTimeout(() => { btnGoProc.disabled = false; }, reduced ? 50 : 500);
   });
 
-  // ---------------- Procesamiento (red neuronal profunda) ----------------
-  const reasoningText = document.getElementById('reasoningText');
-  const btnGoCliente = document.getElementById('btnGoCliente');
-  const netCanvas = document.getElementById('netCanvas');
-  const netCtx = netCanvas.getContext('2d');
-
-  const LAYER_COUNTS = [6, 9, 9, 7, 3];
-  let INPUT_LABELS = NET_LABELS.default.in, OUTPUT_LABELS = NET_LABELS.default.out;
-  const LAYER_DELAY = 230, RAMP = 300;
-
-  let netNodes = [], netEdges = [], netW = 0, netH = 0, netAnimId = null, netStart = 0, netSettled = false, netOutcome = null;
-
-  function buildNetLayout() {
-    const rect = netCanvas.getBoundingClientRect();
-    netW = rect.width; netH = rect.height;
-    const dpr = window.devicePixelRatio || 1;
-    netCanvas.width = netW * dpr; netCanvas.height = netH * dpr;
-    netCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const padLeft = Math.min(150, netW * 0.19);
-    const padRight = Math.min(190, netW * 0.24);
-    const padTop = 14, padBottom = 14;
-    netNodes = [];
-    LAYER_COUNTS.forEach((count, layer) => {
-      const x = padLeft + (layer * (netW - padLeft - padRight)) / (LAYER_COUNTS.length - 1);
-      for (let i = 0; i < count; i++) {
-        const y = padTop + ((i + 1) * (netH - padTop - padBottom)) / (count + 1);
-        netNodes.push({ layer, index: i, x, y, delay: layer * LAYER_DELAY + i * 14 });
-      }
-    });
-    netEdges = [];
-    for (let l = 0; l < LAYER_COUNTS.length - 1; l++) {
-      const a = netNodes.filter((n) => n.layer === l);
-      const b = netNodes.filter((n) => n.layer === l + 1);
-      a.forEach((na) => b.forEach((nb) => netEdges.push({ a: na, b: nb })));
-    }
-  }
-  function smoothstep(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
-  function nodeProgress(node, t) { return smoothstep((t - node.delay) / RAMP); }
-
-  function drawNet(t) {
-    netCtx.clearRect(0, 0, netW, netH);
-    // edges
-    netEdges.forEach((e) => {
-      const p = nodeProgress(e.a, t);
-      if (p <= 0.01) { netCtx.strokeStyle = 'rgba(15,58,92,0.07)'; netCtx.lineWidth = 1; }
-      else {
-        const alpha = 0.10 + 0.55 * p;
-        netCtx.strokeStyle = 'rgba(31,186,214,' + alpha.toFixed(2) + ')';
-        netCtx.lineWidth = 1 + p * 0.8;
-      }
-      netCtx.beginPath(); netCtx.moveTo(e.a.x, e.a.y); netCtx.lineTo(e.b.x, e.b.y); netCtx.stroke();
-    });
-    // nodes
-    netNodes.forEach((n) => {
-      const p = nodeProgress(n, t);
-      const isInput = n.layer === 0, isOutput = n.layer === LAYER_COUNTS.length - 1;
-      const isWin = isOutput && netOutcome && n.index === netOutcome.index && netSettled;
-      let r = isInput || isOutput ? 7 : 5;
-      if (isWin) r = 9;
-
-      if (isWin) {
-        netCtx.beginPath(); netCtx.arc(n.x, n.y, r + 7, 0, Math.PI * 2);
-        netCtx.fillStyle = netOutcome.danger ? 'rgba(194,52,52,0.16)' : 'rgba(24,138,74,0.16)';
-        netCtx.fill();
-      }
-      netCtx.beginPath(); netCtx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      if (isWin) netCtx.fillStyle = netOutcome.danger ? '#c23434' : '#188a4a';
-      else if (p <= 0.01) netCtx.fillStyle = '#dbe6f0';
-      else netCtx.fillStyle = 'rgb(' + Math.round(11 + (31 - 11) * p) + ',' + Math.round(37 + (186 - 37) * p) + ',' + Math.round(69 + (214 - 69) * p) + ')';
-      netCtx.fill();
-      if (p > 0.01 || isWin) { netCtx.lineWidth = 1.5; netCtx.strokeStyle = isWin ? '#fff' : 'rgba(11,99,206,0.35)'; netCtx.stroke(); }
-    });
-    // labels
-    netCtx.font = '600 10.5px Inter, sans-serif';
-    netCtx.textBaseline = 'middle';
-    netNodes.filter((n) => n.layer === 0).forEach((n, i) => {
-      netCtx.fillStyle = '#4f6b85'; netCtx.textAlign = 'right';
-      netCtx.fillText(INPUT_LABELS[i] || '', n.x - 12, n.y);
-    });
-    netNodes.filter((n) => n.layer === LAYER_COUNTS.length - 1).forEach((n) => {
-      const isWin = netOutcome && n.index === netOutcome.index && netSettled;
-      netCtx.fillStyle = isWin ? (netOutcome.danger ? '#c23434' : '#188a4a') : '#4f6b85';
-      netCtx.font = isWin ? '700 11px Inter, sans-serif' : '600 10.5px Inter, sans-serif';
-      netCtx.textAlign = 'left';
-      netCtx.fillText(OUTPUT_LABELS[n.index] || '', n.x + 14, n.y);
-    });
-  }
-
-  function netLoop(now) {
-    const t = now - netStart;
-    drawNet(t);
-    const totalDur = (LAYER_COUNTS.length - 1) * LAYER_DELAY + RAMP;
-    if (t < totalDur) {
-      netAnimId = requestAnimationFrame(netLoop);
-    } else {
-      netSettled = true;
-      drawNet(totalDur);
-      settleReasoning(state.risk || fallbackRisk());
-      btnGoCliente.disabled = false;
-    }
-  }
+  // ---------------- Procesamiento: flujo animado ----------------
+  const reasoningText = $('reasoningText');
+  const btnGoCliente = $('btnGoCliente');
+  let procTimer = null;
   function settleReasoning(risk) {
     reasoningText.textContent = reasoningFor(state.lastIntent, risk);
     paintDecision(state.lastIntent, risk);
+    btnGoCliente.disabled = false;
   }
   function playNetwork() {
-    if (netAnimId) cancelAnimationFrame(netAnimId);
-    const NL = NET_LABELS[state.lastIntent ? state.lastIntent.flow : 'default'];
-    INPUT_LABELS = NL.in; OUTPUT_LABELS = NL.out;
+    clearTimeout(procTimer);
     $('decisionCard').hidden = true;
-    paintMlFlow(state.lastIntent, state.risk || fallbackRisk());
-    buildNetLayout();
     btnGoCliente.disabled = true;
-    netSettled = false;
     if (!state.lastIntent) {
-      netOutcome = null; drawNet(-1);
+      paintMlFlow(null);
       reasoningText.textContent = 'Envía un mensaje en el Chat para ver el razonamiento del modelo.';
       return;
     }
     const risk = state.risk || fallbackRisk();
-    netOutcome = outcomeFromIntent(state.lastIntent, risk);
+    paintMlFlow(state.lastIntent, risk);
     reasoningText.textContent = '';
-    if (reduced) {
-      netSettled = true;
-      const totalDur = (LAYER_COUNTS.length - 1) * LAYER_DELAY + RAMP;
-      drawNet(totalDur);
-      settleReasoning(risk);
-      btnGoCliente.disabled = false;
-      return;
-    }
-    netStart = performance.now();
-    netAnimId = requestAnimationFrame(netLoop);
+    procTimer = setTimeout(() => settleReasoning(risk), reduced ? 50 : 8000);
   }
-  window.addEventListener('resize', () => {
-    if (document.querySelector('.view[data-view="procesamiento"]').classList.contains('active')) {
-      buildNetLayout();
-      const totalDur = (LAYER_COUNTS.length - 1) * LAYER_DELAY + RAMP;
-      drawNet(netSettled ? totalDur : 0);
-    }
-  });
 
   // ---------------- Cliente interno: buscador de afiliado ----------------
   const AFFILIATES = [
@@ -1365,8 +1234,7 @@
     storeBody.innerHTML = '';
     seedRows.forEach((r) => storeBody.appendChild(makeRow(r, false)));
     alertsWrap.querySelectorAll('.alert-card:not(.baseline)').forEach((a) => a.remove());
-    if (netAnimId) cancelAnimationFrame(netAnimId);
-    netOutcome = null;
+    clearTimeout(procTimer);
     $('decisionCard').hidden = true;
     ['almacenamiento', 'procesamiento', 'cliente'].forEach((n) => { const b = tabBtns.find((x) => x.dataset.view === n); if (b) b.disabled = true; });
     clientSelected = false; clientSearch.value = '';
@@ -1413,7 +1281,8 @@
           ['🧠', 'Evaluación de prestadores', 'Ranking listo', false],
         ],
         nodes: intent.ranked.map((r) => r.p.name.replace('Hospital de los ', 'H. de los ').replace('Clínica Pediátrica ', 'Clín. Ped. ').replace('Centro Médico ', 'C. M. ')),
-        netTitle: 'Red de prestadores', netSub: 'cerca de Tumbaco',
+        netTitle: 'Red neuronal en vivo', netSub: 'cada salida es un prestador cercano a Tumbaco',
+        scores: intent.ranked.map((r) => r.score + '/100'),
         result: { name: best.p.name, sub: best.p.sub, chips: ['📍 ' + String(best.p.dist).replace('.', ',') + ' km · ' + best.p.eta, '⏱ Espera ~' + best.p.wait + ' min', '✓ ' + best.p.covTxt],
           why: ['Puntaje más alto: ' + best.score + '/100', 'Dentro de la cobertura de tu plan', best.p.urg >= 1 ? 'Urgencias pediátricas las 24 horas' : 'Atención de emergencias disponible', 'Esperas y cercanía comparadas con los otros 2'], score: best.score, scoreLbl: 'de 100 · mejor opción' },
         steps: ['Datos', 'Decisiones', 'Red de prestadores', '★ Mejor opción'],
@@ -1431,50 +1300,73 @@
         ['🧠', 'Evaluación de ejecutivos', 'Asignado', false],
       ],
       nodes: ['Ejecutivo A', 'Ejecutivo B', 'Ejecutivo C'],
-      netTitle: 'Ejecutivos de liquidaciones', netSub: 'asignación automática',
+      netTitle: 'Red neuronal en vivo', netSub: 'cada salida es un ejecutivo de liquidaciones',
+      scores: ['asignado', 'disponible', 'disponible'],
       result: { name: 'Estado: ' + r.status, sub: 'Reembolso #' + r.id + ' · ' + r.short, chips: ['📅 Recibido ' + r.recv, '⏱ ' + intent.hours + ' h en el sistema', '📬 Respuesta ≤ ' + r.eta],
         why: ['Trámite completo, sin papeles faltantes', 'Se asigna a un ejecutivo de liquidaciones', 'Respuesta dentro del plazo prometido', 'Se avisa al bróker apenas cambie el estado'], score: r.stage + 1, scoreLbl: 'de 5 etapas del recorrido' },
       steps: ['Datos', 'Decisiones', 'Ejecutivos', '★ Respuesta'],
     };
+  }
+  // Red neuronal en capas: entradas con nombre → capas ocultas que se encienden de
+  // izquierda a derecha → salidas (las opciones). Se resalta el camino ganador.
+  function buildNetSVG(f, inLabels) {
+    const W = 880, H = 270, counts = [6, 8, 8, 6, 3], xs = [175, 320, 460, 600, 735];
+    const ys = counts.map((c) => Array.from({ length: c }, (_, i) => 22 + ((i + 0.5) * (H - 44)) / c));
+    const T0 = 4.4, STEP = 0.5;
+    const win = [2, 4, 3, 3, 0];            // camino ganador (un nodo por capa)
+    const winY = (l) => ys[l][win[l]];
+    let g = '<defs><filter id="mlfGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '<radialGradient id="mlfNode" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#eafeff"/><stop offset=".5" stop-color="#3fd6f0"/><stop offset="1" stop-color="#0c87ad"/></radialGradient>' +
+      '<radialGradient id="mlfBest" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#f0fff6"/><stop offset=".5" stop-color="#3ee08f"/><stop offset="1" stop-color="#128a52"/></radialGradient></defs>';
+    for (let l = 0; l < 4; l++) {
+      ys[l].forEach((y1, i) => ys[l + 1].forEach((y2, j) => {
+        g += '<line class="mlf-e" x1="' + xs[l] + '" y1="' + y1.toFixed(1) + '" x2="' + xs[l + 1] + '" y2="' + y2.toFixed(1) + '" style="animation-delay:' + (T0 + l * STEP + 0.15 + ((i * 7 + j * 3) % 5) * 0.05).toFixed(2) + 's"/>';
+      }));
+    }
+    let path = 'M' + xs[0] + ',' + winY(0).toFixed(1);
+    for (let l = 0; l < 4; l++) {
+      g += '<line class="mlf-win" x1="' + xs[l] + '" y1="' + winY(l).toFixed(1) + '" x2="' + xs[l + 1] + '" y2="' + winY(l + 1).toFixed(1) + '" style="animation-delay:' + (T0 + 2.2 + l * 0.35).toFixed(2) + 's"/>';
+      path += ' L' + xs[l + 1] + ',' + winY(l + 1).toFixed(1);
+    }
+    counts.forEach((c, l) => ys[l].forEach((y, i) => {
+      const isWin = win[l] === i, isOut = l === 4;
+      const r = isOut ? (isWin ? 12 : 8) : l === 0 ? 7 : 5.5;
+      const cls = 'mlf-n' + (isWin && isOut ? ' best' : isWin ? ' win' : '');
+      g += '<circle class="' + cls + '" cx="' + xs[l] + '" cy="' + y.toFixed(1) + '" r="' + r + '" style="animation-delay:' + (T0 + l * STEP + (isWin ? 0 : (i % 3) * 0.08)).toFixed(2) + 's"' + (isWin ? ' filter="url(#mlfGlow)"' : '') + '/>';
+    }));
+    ys[0].forEach((y, i) => { g += '<text class="mlf-lbl in" x="' + (xs[0] - 14) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" style="animation-delay:' + (T0 - 0.2 + i * 0.06).toFixed(2) + 's">' + inLabels[i] + '</text>'; });
+    ys[4].forEach((y, i) => {
+      g += '<text class="mlf-lbl out' + (i === 0 ? ' best' : '') + '" x="' + (xs[4] + 20) + '" y="' + (y - 1).toFixed(1) + '" style="animation-delay:' + (T0 + 4 * STEP + 0.3).toFixed(2) + 's">' + f.nodes[i] + '</text>' +
+        '<text class="mlf-lbl sc' + (i === 0 ? ' best' : '') + '" x="' + (xs[4] + 20) + '" y="' + (y + 11).toFixed(1) + '" style="animation-delay:' + (T0 + 4 * STEP + 0.4).toFixed(2) + 's">' + (i === 0 ? '★ ' : '') + f.scores[i] + '</text>';
+    });
+    ['Entrada', 'Capas de análisis', 'Opciones'].forEach((t, i) => {
+      g += '<text class="mlf-cap" x="' + [xs[0], (xs[1] + xs[3]) / 2, xs[4]][i] + '" y="' + (H + 14) + '" text-anchor="middle">' + t + '</text>';
+    });
+    // pulso viajando por el camino ganador
+    g += '<circle r="5" fill="#fff" filter="url(#mlfGlow)" opacity="0"><set attributeName="opacity" to="1" begin="' + (T0 + 2.4).toFixed(1) + 's"/><animateMotion dur="2.2s" begin="' + (T0 + 2.4).toFixed(1) + 's" repeatCount="indefinite" path="' + path + '"/></circle>';
+    return '<svg viewBox="0 -4 ' + W + ' ' + (H + 22) + '" role="img" aria-label="Red neuronal">' + g + '</svg>';
   }
   function paintMlFlow(intent, risk) {
     const box = $('mlFlow');
     if (!intent) { box.hidden = true; box.innerHTML = ''; return; }
     const f = mlFlowData(intent, risk);
     const t = (s) => s.toFixed(2) + 's';
-    const nodeXY = [[70, 52], [232, 72], [150, 218]];
-    const decor = [[24, 130], [276, 130], [60, 205], [250, 215], [150, 28], [100, 160], [200, 170]];
-    const best = 0;
-    let svg = '<svg viewBox="0 0 300 250" role="img" aria-label="' + f.netTitle + '">';
-    decor.forEach((d, i) => { const n = nodeXY[i % 3]; svg += '<line class="mlf-edge" x1="' + d[0] + '" y1="' + d[1] + '" x2="' + n[0] + '" y2="' + n[1] + '"/>'; });
-    nodeXY.forEach((n, i) => { svg += '<line class="mlf-edge' + (i === best ? ' on' : '') + '" x1="150" y1="130" x2="' + n[0] + '" y2="' + n[1] + '" style="animation-delay:' + t(4.6 + i * 0.1) + '"/>'; });
-    decor.forEach((d) => { svg += '<circle class="mlf-node" cx="' + d[0] + '" cy="' + d[1] + '" r="5"/>'; });
-    nodeXY.forEach((n, i) => { svg += '<circle class="mlf-node' + (i === best ? ' on' : '') + '" cx="' + n[0] + '" cy="' + n[1] + '" r="' + (i === best ? 11 : 8) + '"/>'; });
-    svg += '<circle class="mlf-node hub" cx="150" cy="130" r="16"/><text x="150" y="134" text-anchor="middle" font-size="12" fill="#fff">🧠</text>';
-    nodeXY.forEach((n, i) => {
-      const left = n[0] < 150 || (n[0] === 150 && false);
-      const anchor = n[0] === 150 ? 'middle' : n[0] < 150 ? 'start' : 'end';
-      const x = n[0] === 150 ? 150 : n[0] < 150 ? 8 : 292;
-      const y = n[0] === 150 ? n[1] + 24 : n[1] - 16;
-      svg += '<text class="mlf-lbl' + (i === best ? ' best' : '') + '" x="' + x + '" y="' + y + '" text-anchor="' + anchor + '">' + f.nodes[i] + '</text>';
-    });
-    svg += '</svg>';
+    const svg = buildNetSVG(f, NET_LABELS[intent.flow].in);
     box.innerHTML =
-      '<div class="mlf-title">' + f.title + '</div><div class="mlf-sub">Entrada de datos → decisiones paso a paso → ' + f.netTitle.toLowerCase() + ' → resultado. Todo con los datos de esta conversación.</div>' +
+      '<div class="mlf-title">' + f.title + '</div><div class="mlf-sub">Entrada → decisiones → red neuronal → resultado, con los datos de esta conversación.</div>' +
       '<div class="mlf-grid">' +
-      '<div class="mlf-col"><div class="mlf-head"><span class="mlf-num">1</span><div><b>Entrada</b><small>Información recibida por ConfIAbot</small></div></div>' +
+      '<div class="mlf-col a"><div class="mlf-head"><span class="mlf-num">1</span><div><b>Entrada</b><small>Información recibida por ConfIAbot</small></div></div>' +
       f.entrada.map((e, i) => '<div class="mlf-in" style="animation-delay:' + t(0.2 + i * 0.35) + '"><span class="ic">' + e[0] + '</span><div><b>' + e[1] + '</b><small>' + e[2] + '</small></div></div>').join('') + '</div>' +
-      '<div class="mlf-col"><div class="mlf-head"><span class="mlf-num">2</span><div><b>Decisiones</b><small>Análisis inteligente, paso a paso</small></div></div>' +
+      '<div class="mlf-col b"><div class="mlf-head"><span class="mlf-num">2</span><div><b>Decisiones</b><small>Análisis inteligente, paso a paso</small></div></div>' +
       f.decisiones.map((q, i) => '<div class="mlf-q" style="animation-delay:' + t(1.7 + i * 0.5) + '"><span class="ic">' + q[0] + '</span><span class="t">' + q[1] + '</span>' +
-        '<span class="mlf-think" style="animation-delay:' + t(1.9 + i * 0.5) + '">…</span><span class="mlf-ans' + (q[3] ? ' hot' : '') + '" style="animation-delay:' + t(2.3 + i * 0.5) + '">' + q[2] + '</span></div>').join('') +
-      '<div class="mlf-net" style="animation-delay:' + t(4.4) + '"><div class="mlf-sub" style="margin:4px 0 0;text-align:center">' + f.netTitle + ' · ' + f.netSub + '</div>' + svg + '</div></div>' +
-      '<div class="mlf-col mlf-result" style="animation-delay:' + t(5.6) + '"><div class="mlf-head"><span class="mlf-num">3</span><div><b>Resultado</b><small>' + (intent.flow === 'fiebre' ? 'Mejor opción para el afiliado' : 'Respuesta para el bróker') + '</small></div></div>' +
+        '<span class="mlf-think" style="animation-delay:' + t(1.9 + i * 0.5) + '">…</span><span class="mlf-ans' + (q[3] ? ' hot' : '') + '" style="animation-delay:' + t(2.3 + i * 0.5) + '">' + q[2] + '</span></div>').join('') + '</div>' +
+      '<div class="mlf-col n"><div class="mlf-head"><span class="mlf-num">3</span><div><b>Red neuronal</b><small>' + f.netSub + '</small></div></div><div class="mlf-net">' + svg + '</div></div>' +
+      '<div class="mlf-col r mlf-result" style="animation-delay:' + t(7.2) + '"><div class="mlf-head"><span class="mlf-num">4</span><div><b>Resultado</b><small>' + (intent.flow === 'fiebre' ? 'Mejor opción para el afiliado' : 'Respuesta para el bróker') + '</small></div></div>' +
       '<span class="mlf-badge">' + (intent.flow === 'fiebre' ? 'Recomendado' : 'Resuelto') + '</span><div class="mlf-rname">' + f.result.name + '</div><div class="mlf-rsub">' + f.result.sub + '</div>' +
       '<div class="mlf-chips">' + f.result.chips.map((c) => '<span>' + c + '</span>').join('') + '</div>' +
       '<div class="mlf-score">' + f.result.score + '</div><div class="mlf-sub" style="margin-bottom:10px">' + f.result.scoreLbl + '</div>' +
       '<div class="mlf-why"><b>¿Por qué esta opción?</b>' + f.result.why.map((w) => '<div>' + w + '</div>').join('') + '</div></div>' +
-      '</div>' +
-      '<div class="mlf-steps">' + f.steps.map((x) => '<span>' + x + '</span>').join('') + '</div>';
+      '</div>';
     box.hidden = false;
   }
 
