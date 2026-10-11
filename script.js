@@ -29,30 +29,30 @@
       profile: { edad: 38, imc: 25, historial_familiar_diabetes: 0, num_citas_glucosa_6m: 0, num_quejas_2m: 0, tiempo_respuesta_prom_h: 12, nps_score: 8, antiguedad: 6 },
     },
     broker: {
-      key: 'broker', name: 'Andrea Salazar', first: 'Andrea', initials: 'AS', broker: true,
+      key: 'broker', name: 'Nova', first: 'Nova', initials: 'NV', broker: true,
       role: 'Portal bróker', tagline: 'Portal bróker', foot: 'Bróker Confiamed',
-      canal: 'Portal bróker', clientId: 'juan', clientName: 'Juan Pérez', clientInitials: 'JP', clientKicker: 'Afiliado · a cargo de Andrea Salazar',
+      canal: 'Portal bróker', clientId: 'juan', clientName: 'Juan Pérez', clientInitials: 'JP', clientKicker: 'Afiliado · a cargo de Nova',
       nav: ['🏠 Inicio', '👥 Mis afiliados', '💳 Reembolsos', '✅ Autorizaciones', '📈 Cotizaciones', '⚙️ Configuración'],
       stats: [['128', 'Afiliados a cargo'], ['6', 'Trámites activos'], ['3', 'Reembolsos en revisión']],
       cards: [
         { ic: '👥', b: 'Mis afiliados', s: 'Consulta y gestiona' }, { ic: '✅', b: 'Autorizaciones', s: 'Solicita y da seguimiento' },
         { ic: '💳', b: 'Reembolsos', s: 'Estado de tus afiliados' }, { ic: '🤖', b: 'ConfIAbot', s: 'Tu asistente inteligente', hl: true },
       ],
-      greet: 'Hola, Andrea', greetSub: 'Tus afiliados y trámites, en un solo lugar.',
+      greet: 'Hola, Nova', greetSub: 'Tus afiliados y trámites, en un solo lugar.',
       sub: 'Pregúntale a ConfIAbot por cualquier trámite de tus afiliados.',
       hint: '💡 Toca “ConfIAbot” y consulta el estado de un reembolso de tu afiliado Juan Pérez.',
-      intro: 'Hola Andrea 👋 Soy ConfIAbot para brókers. ¿Qué trámite de tus afiliados quieres consultar?',
+      intro: 'Hola Nova 👋 Soy ConfIAbot para brókers. ¿Qué trámite de tus afiliados quieres consultar?',
       starter: '¿En qué estado se encuentra el reembolso de mi afiliado Juan Pérez?',
       profile: { edad: 52, imc: 27, historial_familiar_diabetes: 0, num_citas_glucosa_6m: 0, num_quejas_2m: 0, tiempo_respuesta_prom_h: 12, nps_score: 7, antiguedad: 9 },
     },
   };
   let PERSONA = PERSONAS.afiliado;
 
-  // Lugares de atención (red del plan). Distancias, esperas y coberturas: datos de ejemplo.
+  // Lugares de atención cercanos al Valle de Tumbaco (donde vive Daniel). Salvo el Hospital de los Valles, nombres, distancias, esperas y coberturas son de ejemplo.
   const PROVIDERS = [
-    { id: 'valles', name: 'Hospital de los Valles', sub: 'Urgencias pediátricas · 24 horas', dist: 4.2, eta: '12 min', wait: 15, urg: 1.0, cov: 1.0, covTxt: 'Cubierto al 100%' },
-    { id: 'santalucia', name: 'Clínica Pediátrica Santa Lucía', sub: 'Emergencias pediátricas · 24 horas', dist: 2.8, eta: '8 min', wait: 35, urg: 0.9, cov: 0.9, covTxt: 'Cubierto al 90%' },
-    { id: 'quitonorte', name: 'Centro Médico Quito Norte', sub: 'Emergencias generales · pediatra de turno', dist: 6.5, eta: '18 min', wait: 10, urg: 0.7, cov: 1.0, covTxt: 'Cubierto al 100%' },
+    { id: 'valles', name: 'Hospital de los Valles', sub: 'Urgencias pediátricas · 24 horas', dist: 7.5, eta: '15 min', wait: 15, urg: 1.0, cov: 1.0, covTxt: 'Cubierto al 100%' },
+    { id: 'cumbaya', name: 'Clínica Pediátrica Cumbayá', sub: 'Emergencias pediátricas · 24 horas', dist: 6.0, eta: '12 min', wait: 20, urg: 0.9, cov: 0.9, covTxt: 'Cubierto al 90%' },
+    { id: 'tumbaco', name: 'Centro Médico Tumbaco', sub: 'Emergencias generales · pediatra de turno', dist: 2.5, eta: '6 min', wait: 45, urg: 0.75, cov: 1.0, covTxt: 'Cubierto al 100%' },
   ];
   const WEIGHTS = {
     alta: { urg: 0.45, wait: 0.25, dist: 0.20, cov: 0.10 },
@@ -585,7 +585,7 @@
   async function startFever(text) {
     const tk = runToken;
     flow = { type: 'fiebre', step: 0, data: {}, messages: [text], awaiting: 'step', busy: true };
-    beginBehind([['Quién: ' + PERSONA.name], ['Motivo: fiebre en un menor', 'hot']]);
+    beginBehind([['Quién: ' + PERSONA.name], ['Zona: Valle de Tumbaco', 'good'], ['Motivo: fiebre en un menor', 'hot']]);
     if (!await say('Claro, ' + PERSONA.first + ', te ayudo ahora mismo. Vamos a encontrar dónde atenderlo hoy.', 900)) return;
     askFeverStep(tk);
   }
@@ -623,7 +623,7 @@
     state.risk = computeRisk() || fallbackRisk();
     const ok = await runAnalysis(tk, [
       'Revisando tu plan y tu cobertura',
-      'Buscando lugares con urgencias abiertos ahora',
+      'Buscando prestadores abiertos cerca de Tumbaco',
       'Comparando cercanía y tiempo de espera',
       'Ordenando de la mejor a la menos recomendada',
     ], {
@@ -653,7 +653,7 @@
     else addBubble('No suena grave, pero conviene que lo vea un médico si la fiebre sigue. Estas son tus opciones:', 'bot');
     await wait(500);
     if (!alive(tk)) return;
-    addBubble('Entiendo tu preocupación, ' + PERSONA.first + '. Dentro de tu red hemos analizado estas 3 opciones donde puedes acudir inmediatamente. Te las ordené de la mejor a la menos recomendada:', 'bot');
+    addBubble('Entiendo tu preocupación, ' + PERSONA.first + '. Dentro de tu red hemos analizado los prestadores más cercanos a ti en el Valle de Tumbaco y estas 3 opciones son donde puedes acudir inmediatamente. Te las ordené de la mejor a la menos recomendada:', 'bot');
     const html = ranked.map((r, i) =>
       '<button type="button" class="opt-card pick' + (i === 0 ? ' best' : '') + '" data-id="' + r.p.id + '" style="animation-delay:' + (i * 0.2) + 's">' +
       (i === 0 ? '<span class="opt-badge">Recomendada</span>' : '') +
@@ -678,8 +678,8 @@
     else {
       const t = norm(text);
       if (/valles|\b1\b|primer/.test(t)) r = flow.ranked.find((x) => x.p.id === 'valles') || flow.ranked[0];
-      else if (/lucia|santa/.test(t)) r = flow.ranked.find((x) => x.p.id === 'santalucia');
-      else if (/norte|quito/.test(t)) r = flow.ranked.find((x) => x.p.id === 'quitonorte');
+      else if (/cumbaya|clinica/.test(t)) r = flow.ranked.find((x) => x.p.id === 'cumbaya');
+      else if (/tumbaco|centro/.test(t)) r = flow.ranked.find((x) => x.p.id === 'tumbaco');
       else if (/\b2\b|segund/.test(t)) r = flow.ranked[1];
       else if (/\b3\b|tercer/.test(t)) r = flow.ranked[2];
     }
@@ -1421,7 +1421,7 @@
   function flowPlan(li) {
     if (!li) return [];
     if (li.flow === 'fiebre') return ['Llamada de seguimiento en 24 h para saber cómo sigue su hijo', 'Registrar la atención recibida en su historial'];
-    return ['Priorizar la asignación a un ejecutivo de liquidaciones', 'Avisar a la bróker apenas cambie el estado'];
+    return ['Priorizar la asignación a un ejecutivo de liquidaciones', 'Avisar a Nova apenas cambie el estado'];
   }
   function flowReco(li) {
     if (li.flow === 'fiebre') return 'Recomendación: dar seguimiento a la atención de urgencia de su hijo y confirmar en 24 h que esté bien. Es un momento clave para que sienta a Confiamed de su lado.';

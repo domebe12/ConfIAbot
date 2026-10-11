@@ -75,7 +75,7 @@ Todos los datos y conversaciones son de ejemplo, con fines de demostración — 
 
 1. **Comenzar** → **elegir portal** (afiliado o bróker).
 2. **Portal afiliado** (Daniel Chacón): consulta por la fiebre de su hijo → 3 preguntas sencillas (edad, fiebre, señales) → 3 lugares de atención ordenados.
-3. **Portal bróker** (Andrea Salazar): estado del reembolso de Juan Pérez → lista de reembolsos activos → #2534 SIME Imagen en *Revisión*, respuesta en 24 h.
+3. **Portal bróker** (Nova): estado del reembolso de Juan Pérez → lista de reembolsos activos → #2534 SIME Imagen en *Revisión*, respuesta en 24 h.
 4. Panel **"Detrás de escena"** en el chat, y luego Almacenamiento → Procesamiento (red neuronal con etiquetas del caso + tarjeta "Decisión del motor") → Cliente interno.
 
 Honestidad técnica: la decisión del motor (urgencia, ranking de lugares, estado del reembolso) es un **motor de reglas con datos de ejemplo**; el riesgo de no renovación sí lo calcula el modelo real (`assets/models.json`). Nombres de lugares, cifras del portal y reembolsos #2519/#2541 son de ejemplo.
