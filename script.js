@@ -79,7 +79,7 @@
   const NET_LABELS = {
     default: { in: ['Texto del mensaje', 'Edad y género', 'Historial de citas', 'Quejas registradas', 'Diagnósticos previos', 'Canal de contacto'],
       out: ['Riesgo de salud', 'Riesgo de no renovación', 'Seguimiento estándar'] },
-    fiebre: { in: ['Texto del mensaje', 'Edad del niño', 'Temperatura', 'Señales de alarma', 'Plan y cobertura', 'Red y ubicación'],
+    fiebre: { in: ['Texto del mensaje', 'Motivo de consulta', 'Ubicación (la dice el afiliado)', 'Plan y cobertura', 'Red de prestadores', 'Esperas y cercanía'],
       out: ['Ir a urgencias ahora', 'Consulta prioritaria hoy', 'Cuidados en casa + control'] },
     reembolso: { in: ['Texto del mensaje', 'Tipo de trámite', 'Fecha de recepción', 'Estado actual', 'Historial del afiliado', 'Carga de liquidadores'],
       out: ['Escalar por demora', 'Seguimiento normal', 'Pago en camino'] },
@@ -490,40 +490,14 @@
 
   // ---------------- Flujo 1: afiliado · fiebre de su hijo ----------------
   const FEVER_STEPS = [
-    { key: 'edad', ask: 'Gracias por contarme. Para decirte el mejor lugar, solo necesito 3 datos rápidos. Primero: ¿cuántos años tiene tu hijo?',
-      opts: [{ label: 'Menos de 2 años', v: 'lt2' }, { label: 'De 2 a 5 años', v: '2a5' }, { label: 'De 6 a 12 años', v: '6a12' }, { label: 'De 13 a 17 años', v: '13a17' }],
-      names: { lt2: 'menos de 2 años', '2a5': '2 a 5 años', '6a12': '6 a 12 años', '13a17': '13 a 17 años' }, chipLabel: 'Edad',
-      parse(t) {
-        t = norm(t);
-        if (/beb[eé]|recien|meses|mes\b/.test(t)) return 'lt2';
-        const m = t.match(/(\d+)/);
-        if (!m) return null;
-        const n = +m[1];
-        return n < 2 ? 'lt2' : n <= 5 ? '2a5' : n <= 12 ? '6a12' : n <= 17 ? '13a17' : null;
-      } },
-    { key: 'temp', ask: 'Entiendo. ¿Qué tan alta es la fiebre ahora?',
-      opts: [{ label: 'Menos de 38,5°', v: 'baja' }, { label: 'Entre 38,5° y 39,5°', v: 'media' }, { label: 'Más de 39,5°', v: 'alta' }, { label: 'No tengo termómetro, se siente caliente', v: 'media' }],
-      names: { baja: 'menos de 38,5°', media: '38,5° a 39,5°', alta: 'más de 39,5°' }, chipLabel: 'Fiebre',
-      parse(t) {
-        t = norm(t);
-        const m = t.match(/(\d{2})(?:[.,](\d))?/);
-        if (m) { const v = parseFloat(m[1] + '.' + (m[2] || '0')); if (v >= 35 && v <= 43) return v < 38.5 ? 'baja' : v <= 39.5 ? 'media' : 'alta'; }
-        if (/termometro|caliente|calentura/.test(t)) return 'media';
-        return null;
-      } },
-    { key: 'alarma', ask: 'Última pregunta: ¿tiene alguna de estas señales? Está muy decaído, respira con dificultad, vomita sin parar o le salieron manchas en la piel.',
-      opts: [{ label: 'Sí, alguna de esas', v: 'si' }, { label: 'No, solo tiene fiebre', v: 'no' }],
-      names: { si: 'sí', no: 'no' }, chipLabel: 'Señales de alarma',
-      parse(t) {
-        t = norm(t);
-        if (/^(no|ninguna|solo)/.test(t) || /no tiene|solo fiebre|ninguna/.test(t)) return 'no';
-        if (/^(si|alguna)|decaid|dificultad|vomit|mancha/.test(t)) return 'si';
-        return null;
-      } },
+    { key: 'ubi', ask: 'Para encontrar el lugar más cercano, dime tu ubicación, por favor.',
+      opts: [{ label: 'Tumbaco', v: 'tumbaco' }],
+      names: { tumbaco: 'Tumbaco' }, chipLabel: 'Ubicación',
+      parse(t) { return /tumbaco/.test(norm(t)) ? 'tumbaco' : null; } },
   ];
-  function feverLevel(d) {
-    const pts = (d.edad === 'lt2' ? 2 : d.edad === '2a5' ? 1 : 0) + (d.temp === 'alta' ? 2 : d.temp === 'media' ? 1 : 0) + (d.alarma === 'si' ? 3 : 0);
-    return { pts, level: pts >= 3 ? 'alta' : pts >= 1 ? 'media' : 'baja', pct: Math.round((pts / 7) * 100) };
+  function feverLevel() {
+    // Sin preguntas clínicas: la demo asume urgencia media (consulta prioritaria hoy).
+    return { pts: 3, level: 'media', pct: 43 };
   }
   function rankProviders(level) {
     const w = WEIGHTS[level];
@@ -537,8 +511,8 @@
   async function startFever(text) {
     const tk = runToken;
     flow = { type: 'fiebre', step: 0, data: {}, messages: [text], awaiting: 'step', busy: true };
-    beginBehind([['Quién: ' + PERSONA.name], ['Zona: Valle de Tumbaco', 'good'], ['Motivo: fiebre en un menor', 'hot']]);
-    if (!await say('Claro, ' + PERSONA.first + ', te ayudo ahora mismo. Vamos a encontrar dónde atenderlo hoy.', 900)) return;
+    beginBehind([['Quién: ' + PERSONA.name], ['Motivo: fiebre en un menor', 'hot']]);
+    if (!await say('Claro, ' + PERSONA.first + ', te ayudo ahora mismo.', 900)) return;
     askFeverStep(tk);
   }
   async function askFeverStep(tk) {
@@ -586,7 +560,7 @@
       },
       model() {
         behind.active(4);
-        behind.line(4, 'Nivel de urgencia: <b>' + LEVEL_TXT[level] + '</b> (' + pts + ' de 7 puntos)');
+        behind.line(4, 'Nivel de urgencia: <b>' + LEVEL_TXT[level] + '</b> (fiebre en un menor)');
         behind.meter(4, Math.max(8, pct));
         behind.line(4, 'Riesgo de no renovación (modelo real): <b>' + state.risk.renov.pct + '%</b>');
       },
@@ -1234,10 +1208,9 @@
     const msg = state.history.length ? state.history[0].msg.split(' · ')[0] : '';
     if (intent.flow === 'fiebre') {
       const d = intent.data, best = intent.ranked[0];
-      const edad = { lt2: 'Menos de 2 años', '2a5': '2 a 5 años', '6a12': '6 a 12 años', '13a17': '13 a 17 años' }[d.edad];
-      return {
+            return {
         title: 'Así decide ConfIAbot: del mensaje a la mejor opción',
-        entrada: [['💬', 'Conversación del afiliado', msg], ['🧒', 'Edad del paciente', edad], ['📍', 'Ubicación del afiliado', 'Valle de Tumbaco'], ['🛡️', 'Cobertura del afiliado', PERSONAS.afiliado.foot]],
+        entrada: [['💬', 'Conversación del afiliado', msg], ['🧒', 'Motivo de consulta', 'Fiebre en un menor'], ['📍', 'Ubicación que dio el afiliado', 'Tumbaco'], ['🛡️', 'Cobertura del afiliado', PERSONAS.afiliado.foot]],
         decisiones: [
           ['⚠️', '¿Es una emergencia?', intent.level === 'alta' ? 'Sí' : intent.level === 'media' ? 'Conviene hoy' : 'No', intent.level === 'alta'],
           ['🧑‍⚕️', '¿Requiere atención pediátrica?', 'Sí', false],
@@ -1340,7 +1313,7 @@
   function reasoningFor(intent, risk) {
     if (intent.flow === 'fiebre') {
       const w = WEIGHTS[intent.level];
-      return 'Se combinan la edad del niño, la temperatura y las señales de alarma para estimar la urgencia (nivel ' + LEVEL_TXT[intent.level].toLowerCase() + ', ' + intent.pts + ' de 7 puntos). ' +
+      return 'Con el motivo (fiebre en un menor) y la ubicación que dio el afiliado (Tumbaco), el motor estima la urgencia (nivel ' + LEVEL_TXT[intent.level].toLowerCase() + '). ' +
         'Con ese nivel el motor decide qué pesa más al ordenar los lugares: atención de urgencias ' + Math.round(w.urg * 100) + '%, espera ' + Math.round(w.wait * 100) + '%, cercanía ' + Math.round(w.dist * 100) + '% y cobertura ' + Math.round(w.cov * 100) + '%. ' +
         'Resultado: ' + intent.ranked[0].p.name + ' encabeza la lista.' + realStatsLine(intent, risk);
     }
@@ -1362,7 +1335,7 @@
           '<div class="dc-score">' + r.score + '</div></div>').join('') +
         '<div class="dc-checks">' +
         '<div class="dc-check good"><b>✓ Dentro de la red</b>Los 3 lugares están en la red del plan de ' + PERSONAS.afiliado.first + '.</div>' +
-        '<div class="dc-check ' + (intent.level === 'alta' ? 'warn' : 'good') + '"><b>' + (intent.level === 'alta' ? '⚠ Alerta de seguridad' : '✓ Sin señales de alarma graves') + '</b>' +
+        '<div class="dc-check ' + (intent.level === 'alta' ? 'warn' : 'good') + '"><b>' + (intent.level === 'alta' ? '⚠ Alerta de seguridad' : '✓ Urgencia ' + LEVEL_TXT[intent.level].toLowerCase()) + '</b>' +
         (intent.level === 'alta' ? 'Se avisó que vaya a urgencias ya y se mostró el 911.' : 'Se recomienda control médico hoy.') + '</div>' +
         '<div class="dc-check ' + (risk.renov.high ? 'warn' : 'good') + '"><b>Modelo real · retención</b>' + risk.renov.pct + '% de riesgo de no renovación (percentil ' + risk.renov.pctl + ').</div></div>' + FOOTNOTE;
     } else {
