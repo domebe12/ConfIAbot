@@ -974,3 +974,8 @@ main#app{ position:relative; z-index:1; }
 .role-go{ color:#fff; align-self:flex-start; background:var(--brand); padding:9px 18px; border-radius:999px; letter-spacing:.08em; margin:10px 8px 0;
   box-shadow:0 10px 20px -10px rgba(0,86,184,0.7); transition:background .2s; }
 .role-card:hover .role-go{ background:var(--brand-2); }
+.role-card b{ font-size:clamp(34px,4vw,46px); font-weight:800; line-height:1.05; }
+.role-card small b{ font-size:14px; font-weight:700; line-height:1.5; }
+.role-ic{ width:76px; height:76px; border-radius:20px; }
+.role-ic svg{ width:44px; height:44px; }
+.selector-inner{ max-width:960px; }
