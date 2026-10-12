@@ -13,8 +13,8 @@
   const PERSONAS = {
     afiliado: {
       key: 'afiliado', name: 'Daniel Chacón', first: 'Daniel', initials: 'DC', broker: false,
-      role: 'Portal afiliado · Plan Oro', tagline: 'Portal afiliado', foot: 'Plan Oro',
-      canal: 'App móvil', clientId: 'daniel', clientName: 'Daniel Chacón', clientInitials: 'DC', clientKicker: 'Afiliado · Plan Oro',
+      role: 'Portal afiliado · Plan Confiplus', tagline: 'Portal afiliado', foot: 'Plan Confiplus',
+      canal: 'App móvil', clientId: 'daniel', clientName: 'Daniel Chacón', clientInitials: 'DC', clientKicker: 'Afiliado · Plan Confiplus',
       nav: ['🏠 Inicio', '📄 Mis solicitudes', '🩺 Citas médicas', '💳 Reembolsos', '📁 Documentos', '⚙️ Configuración'],
       stats: [['Activa', 'Tu cobertura'], ['2', 'Citas este año'], ['0', 'Trámites pendientes']],
       cards: [

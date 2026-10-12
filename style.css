@@ -691,14 +691,36 @@ main#app{ position:relative; z-index:1; }
 
 .selector-inner{ max-width:820px; }
 .role-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; width:100%; margin-top:6px; }
-.role-card{ text-align:left; font-family:var(--font-body); background:var(--surface-solid); border:1.5px solid var(--border-strong); border-radius:24px; padding:28px 26px 22px;
-  display:flex; flex-direction:column; gap:8px; cursor:pointer; box-shadow:var(--shadow); transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease; color:var(--ink); }
-.role-card:hover, .role-card:focus-visible{ transform:translateY(-4px); border-color:var(--accent); box-shadow:0 30px 56px -26px rgba(11,99,206,0.45); outline:none; }
-.role-ic{ font-size:34px; width:64px; height:64px; border-radius:20px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; margin-bottom:6px; }
-.role-card b{ font-family:var(--font-display); font-size:19px; }
-.role-card small{ color:var(--ink-soft); font-size:13px; line-height:1.45; }
-.role-card small b{ font-size:13px; color:var(--ink); }
-.role-go{ margin-top:10px; font-weight:700; font-size:13px; color:var(--accent); }
+.role-card{ position:relative; overflow:hidden; text-align:left; font-family:var(--font-body); color:#d7e8fb; cursor:pointer;
+  background:
+    linear-gradient(rgba(94,242,208,0.05) 1px,transparent 1px) 0 0/100% 26px,
+    linear-gradient(90deg,rgba(94,242,208,0.05) 1px,transparent 1px) 0 0/26px 100%,
+    radial-gradient(120% 90% at 100% 0%,rgba(31,186,214,0.28),transparent 55%),
+    linear-gradient(160deg,#0b2545 0%,#08182f 100%);
+  border:1px solid rgba(94,242,208,0.28); border-radius:22px; padding:22px 24px 20px; display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 30px 60px -30px rgba(8,24,47,0.8), inset 0 0 0 1px rgba(255,255,255,0.03); transition:transform .25s, border-color .25s, box-shadow .25s; }
+.role-card::after{ content:''; position:absolute; left:0; right:0; top:-40%; height:40%; background:linear-gradient(180deg,transparent,rgba(94,242,208,0.10),transparent); animation:rcScan 5s linear infinite; pointer-events:none; }
+@keyframes rcScan{ to{ top:110%; } }
+.role-card:hover, .role-card:focus-visible{ transform:translateY(-5px); border-color:#5ef2d0; box-shadow:0 0 0 1px rgba(94,242,208,0.5), 0 30px 70px -24px rgba(31,186,214,0.65); outline:none; }
+.rc-corner{ position:absolute; width:16px; height:16px; border:2px solid #5ef2d0; opacity:.8; }
+.rc-corner.tl{ top:10px; left:10px; border-right:none; border-bottom:none; border-top-left-radius:6px; }
+.rc-corner.br{ bottom:10px; right:10px; border-left:none; border-top:none; border-bottom-right-radius:6px; }
+.rc-top{ display:flex; justify-content:space-between; align-items:center; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.14em; margin:0 8px; }
+.rc-tag{ color:#7fb4e6; }
+.rc-live{ display:flex; align-items:center; gap:6px; color:#5ef2d0; }
+.rc-live i{ width:7px; height:7px; border-radius:50%; background:#5ef2d0; box-shadow:0 0 8px #5ef2d0; animation:rcBlink 1.6s ease-in-out infinite; }
+@keyframes rcBlink{ 50%{ opacity:.3; } }
+.role-ic{ width:68px; height:68px; border-radius:18px; margin:6px 8px 2px; display:flex; align-items:center; justify-content:center; color:#8fd6ff;
+  background:rgba(31,186,214,0.10); border:1px solid rgba(94,242,208,0.35); box-shadow:0 0 24px -4px rgba(31,186,214,0.55), inset 0 0 14px rgba(31,186,214,0.15); }
+.role-ic svg{ width:38px; height:38px; }
+.role-card b{ font-family:var(--font-display); font-size:21px; color:#fff; margin:0 8px; }
+.role-card small{ color:#a9c4de; font-size:13px; line-height:1.5; margin:0 8px; }
+.role-card small b{ font-size:13px; color:#5ef2d0; margin:0; font-family:var(--font-body); }
+.rc-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:2px 8px 0; }
+.rc-chips em{ font-style:normal; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.06em; color:#8fd6ff; border:1px solid rgba(143,214,255,0.35); border-radius:999px; padding:3px 10px; background:rgba(143,214,255,0.07); }
+.role-go{ margin:8px 8px 0; font-family:var(--font-mono); font-weight:700; font-size:12.5px; letter-spacing:.1em; text-transform:uppercase; color:#5ef2d0; }
+.role-go span{ display:inline-block; transition:transform .2s; }
+.role-card:hover .role-go span{ transform:translateX(6px); }
 @media (max-width:700px){ .role-grid{ grid-template-columns:1fr; } }
 
 /* portal mock: avatar + nav */
