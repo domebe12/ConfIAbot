@@ -169,10 +169,10 @@
       if (hero) {
         const len = Math.hypot(e.x2 - e.x1, y2 - y1) * 1.25 + 10;
         const delay = (e.y1 * 0.16).toFixed(2);
-        if (e.onPath) parts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="#3fd6f0" stroke-width="2.6" stroke-linecap="round" filter="url(#treeGlow)" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
+        if (e.onPath) parts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="#1dd2f7" stroke-width="2.6" stroke-linecap="round" filter="url(#treeGlow)" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
         else parts.push(`<path class="tree-edge" d="${d}" fill="none" stroke="rgba(135,180,220,0.22)" stroke-width="1" stroke-linecap="round" style="stroke-dasharray:${len};stroke-dashoffset:${len};animation-delay:${delay}s"/>`);
       } else {
-        parts.push(`<path d="${d}" fill="none" stroke="${e.onPath ? 'rgba(63,214,240,0.55)' : 'rgba(135,180,220,0.16)'}" stroke-width="${e.onPath ? 1.2 : 0.7}" stroke-linecap="round"/>`);
+        parts.push(`<path d="${d}" fill="none" stroke="${e.onPath ? 'rgba(29,210,247,0.55)' : 'rgba(135,180,220,0.16)'}" stroke-width="${e.onPath ? 1.2 : 0.7}" stroke-linecap="round"/>`);
       }
     });
     out.nodes.forEach((n) => {
@@ -643,7 +643,7 @@
     const bld = '<svg viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="rcSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe3fb"/><stop offset="1" stop-color="#eaf6ff"/></linearGradient></defs><rect width="320" height="120" fill="url(#rcSky)"/><rect x="40" y="38" width="150" height="82" rx="4" fill="#fff" stroke="#c4d9ec"/><rect x="170" y="22" width="110" height="98" rx="4" fill="#f4f9fe" stroke="#c4d9ec"/>' +
       Array.from({ length: 12 }, (_, i) => '<rect x="' + (52 + (i % 6) * 22) + '" y="' + (50 + Math.floor(i / 6) * 26) + '" width="14" height="14" rx="2" fill="#7fb8e6"/>').join('') +
       Array.from({ length: 12 }, (_, i) => '<rect x="' + (182 + (i % 4) * 24) + '" y="' + (34 + Math.floor(i / 4) * 26) + '" width="14" height="14" rx="2" fill="#7fb8e6"/>').join('') +
-      '<rect x="228" y="92" width="26" height="28" fill="#0b63ce"/><circle cx="236" cy="60" r="0" fill="none"/><rect x="95" y="100" width="40" height="20" fill="#0b63ce"/><text x="115" y="114" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">✚</text></svg>';
+      '<rect x="228" y="92" width="26" height="28" fill="#0056b8"/><circle cx="236" cy="60" r="0" fill="none"/><rect x="95" y="100" width="40" height="20" fill="#0056b8"/><text x="115" y="114" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">✚</text></svg>';
     const why = [
       pos === 1 ? 'Mejor puntaje de tus 3 opciones: ' + r.score + '/100' : 'Puesto ' + pos + ' de 3 (' + r.score + '/100) por la urgencia de tu caso',
       'Dentro de la cobertura de tu plan · ' + r.p.covTxt.toLowerCase(),
@@ -1281,7 +1281,7 @@
     const win = [2, 4, 3, 3, 0];            // camino ganador (un nodo por capa)
     const winY = (l) => ys[l][win[l]];
     let g = '<defs><filter id="mlfGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-      '<radialGradient id="mlfNode" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#eafeff"/><stop offset=".5" stop-color="#3fd6f0"/><stop offset="1" stop-color="#0c87ad"/></radialGradient>' +
+      '<radialGradient id="mlfNode" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#eafeff"/><stop offset=".5" stop-color="#1dd2f7"/><stop offset="1" stop-color="#0c87ad"/></radialGradient>' +
       '<radialGradient id="mlfBest" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#f0fff6"/><stop offset=".5" stop-color="#3ee08f"/><stop offset="1" stop-color="#128a52"/></radialGradient></defs>';
     for (let l = 0; l < 4; l++) {
       ys[l].forEach((y1, i) => ys[l + 1].forEach((y2, j) => {
@@ -1400,7 +1400,7 @@
   }
   function drawBg() {
     bgCtx.clearRect(0, 0, bgW, bgH);
-    bgCtx.fillStyle = 'rgba(11,99,206,0.3)';
+    bgCtx.fillStyle = 'rgba(0,86,184,0.3)';
     particles.forEach((p) => {
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = bgW; if (p.x > bgW) p.x = 0;
