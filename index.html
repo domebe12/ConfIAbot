@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261012c">
+<link rel="stylesheet" href="style.css?v=20261012d">
 </head>
 <body class="pre-portal">
 
@@ -43,13 +43,16 @@
 
   <!-- ===================== BIENVENIDA ===================== -->
   <section class="view active" data-view="bienvenida">
-    <div class="view-inner center-inner welcome-inner">
-      <img class="cf-logo cf-logo--hero" src="https://www.confiamed.com/wp-content/uploads/2025/12/confiamed.svg" alt="Confiamed" onerror="this.replaceWith(Object.assign(document.createElement('b'),{textContent:'Confiamed',className:'cf-logo-txt'}))">
-      <img class="mascot-img welcome-badge welcome-badge--big" src="assets/mascot-hero.png" alt="ConfIAbot">
-      <div class="eyebrow">Shark Tank Confiamed</div>
-      <h2 class="hero-title">Bienvenidos a la Demo de ConfIAbot</h2>
-      <p class="hero-sub">Vamos a simular que entramos como <b>afiliado</b> y como <b>bróker</b> para ver cómo responde ConfIAbot.</p>
-      <button class="btn primary big" id="btnStart" type="button">Comenzar →</button>
+    <div class="view-inner welcome-wrap">
+      <div class="welcome-hero">
+        <div class="welcome-copy">
+          <img class="cf-logo cf-logo--wel" src="https://www.confiamed.com/wp-content/uploads/2025/12/confiamed.svg" alt="Confiamed" onerror="this.replaceWith(Object.assign(document.createElement('b'),{textContent:'Confiamed',className:'cf-logo-txt'}))">
+          <div class="eyebrow">Shark Tank Confiamed</div>
+          <h2 class="hero-title">Bienvenidos a la Demo de <span class="grad">ConfIAbot</span></h2>
+          <p class="hero-sub">Vamos a simular que entramos como <b>afiliado</b> y como <b>bróker</b> para ver cómo responde ConfIAbot.</p>
+          <button class="btn primary big" id="btnStart" type="button">Comenzar →</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -440,6 +443,6 @@
   <img src="assets/mascot-avatar.png" alt="">
 </button>
 
-<script src="script.js?v=20261012c"></script>
+<script src="script.js?v=20261012d"></script>
 </body>
 </html>

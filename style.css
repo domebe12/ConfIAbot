@@ -929,3 +929,21 @@ main#app{ position:relative; z-index:1; }
 .portal-logo small{ font-family:var(--font-mono); font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--brand-2); }
 .btn.primary, .persona-switch{ }
 @media (max-width:900px){ .cf-logo--top{ width:110px; } .brand-sep{ display:none; } }
+
+/* ===== Portada (hero con fondo de marca) ===== */
+.welcome-wrap{ max-width:1120px; width:100%; }
+.welcome-hero{ position:relative; width:100%; aspect-ratio:16/9; min-height:420px; border-radius:28px; overflow:hidden;
+  background:#dcecfb url(assets/hero-bg.jpg) center/cover no-repeat; border:1px solid rgba(0,86,184,0.14);
+  box-shadow:0 40px 80px -40px rgba(0,56,120,0.55); display:flex; align-items:center; }
+.welcome-copy{ width:52%; padding:0 0 0 6%; text-align:left; display:flex; flex-direction:column; align-items:flex-start; position:relative; z-index:1; }
+.cf-logo--wel{ width:190px; margin:0 0 22px; }
+.welcome-copy .eyebrow{ color:var(--brand-2); font-size:11px; margin-bottom:8px; }
+.welcome-copy .hero-title{ font-size:clamp(28px,4.2vw,50px); line-height:1.08; margin:0 0 14px; color:var(--brand); }
+.welcome-copy .hero-title .grad{ background:linear-gradient(90deg,var(--brand),var(--brand-cyan)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.welcome-copy .hero-sub{ font-size:clamp(14px,1.5vw,18px); max-width:30em; color:#2c4d73; margin:0 0 26px; }
+.welcome-copy .hero-sub b{ color:var(--brand); }
+@media (max-width:760px){
+  .welcome-hero{ aspect-ratio:auto; min-height:600px; background-size:auto 56%; background-position:88% 100%; background-color:#e4f1fc; align-items:flex-start; }
+  .welcome-hero::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(236,246,254,.9) 0%,rgba(236,246,254,.55) 40%,transparent 62%); }
+  .welcome-copy{ width:100%; padding:30px 24px 0; }
+}
