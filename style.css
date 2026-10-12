@@ -883,7 +883,7 @@ main#app{ position:relative; z-index:1; }
 /* tarjeta de resultado en el chat */
 .res-card{ background:#fff; border:1.5px solid var(--border-strong); border-radius:16px; padding:12px; width:100%; animation:bubbleIn .5s ease; box-shadow:0 14px 28px -20px rgba(6,43,92,.5); }
 .res-head b{ font-family:var(--font-display); font-size:14px; display:block; } .res-head small{ font-size:11px; color:var(--muted); }
-.res-photo{ position:relative; border-radius:12px; overflow:hidden; margin:9px 0 8px; height:96px; } .res-photo svg{ width:100%; height:100%; display:block; }
+.res-photo{ position:relative; border-radius:12px; overflow:hidden; margin:9px 0 8px; aspect-ratio:8/3; max-height:190px; background:linear-gradient(180deg,#a9d8f8,#eaf6ff); } .res-photo svg{ width:100%; height:100%; display:block; }
 .res-badge{ position:absolute; top:7px; right:7px; background:#18a85a; color:#fff; font-size:10px; font-weight:800; padding:3px 9px; border-radius:999px; }
 .res-name{ font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--ink); } .res-sub{ font-size:12px; color:var(--accent); font-weight:600; margin-bottom:9px; }
 .res-tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:9px; }
