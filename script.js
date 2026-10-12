@@ -642,7 +642,7 @@
       'Espera aproximada de ' + r.p.wait + ' min · a ' + r.p.eta + ' de tu ubicación',
     ];
     addRich('<div class="res-card"><div class="res-head"><b>Resultado</b><small>' + (pos === 1 ? 'Mejor opción para tu hijo' : 'La opción que elegiste') + '</small></div>' +
-      '<div class="res-photo">' + bld + '<span class="res-badge">' + (pos === 1 ? '✔ Recomendado' : '✔ Tu elección') + '</span></div>' +
+      '<div class="res-photo"><img src="assets/hospital-ref.jpg" alt="Imagen referencial del hospital" loading="eager">' + '<span class="res-ref">Imagen referencial</span><span class="res-badge">' + (pos === 1 ? '✔ Recomendado' : '✔ Tu elección') + '</span></div>' +
       '<div class="res-name">' + r.p.name + '</div><div class="res-sub">' + r.p.sub.split(' · ')[0] + '</div>' +
       '<div class="res-tiles"><div><span>🕒</span><b>24/7</b><small>Atención continua</small></div><div><span>🛡️</span><b>Dentro</b><small>de cobertura</small></div><div><span>📍</span><b>A ' + r.p.eta + '</b><small>de tu ubicación</small></div></div>' +
       '<div class="res-why"><b>¿Por qué esta opción?</b>' + why.map((w) => '<div>✔ ' + w + '</div>').join('') + '</div></div>');
